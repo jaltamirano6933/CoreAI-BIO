@@ -1,0 +1,260 @@
+{
+  "GSE214617": {
+    "accession": "GSE214617",
+    "title": "Advanced physiological maturation of iPSC-derived human cardiomyocytes using an algorithm-directed optimization of defined media components",
+    "summary": "Induced pluripotent stem cell-derived cardiomyocytes (iPSC-CMs) hold tremendous promise for in vitro modeling to assess native myocardial function and disease mechanisms as well as testing drug safety and efficacy. However, current iPSC-CMs are functionally immature, resembling in vivo CMs of fetal or neonatal developmental states. The use of targeted culture media and organoid formats have been identified as potential high-yield contributors to improve CM maturation. This study presents a novel iPSC-CM maturation medium formulation, designed using a differential evolutionary approach with oxidative capacity as an objective metric for iterative optimization. Relative to gold-standard reference formulations, our approach significantly matured morphology, Ca2+ handling, electrophysiology, and metabolism, which was further validated by multi-omic screening, for cells in either pure or co-cultured microtissue formats. Together, these findings not only provide a reliable workflow for highly functional iPSC-CMs for downstream use, but also demonstrate the power of high-dimensional optimization processes in evoking advanced biological function in vitro.",
+    "organism": "Homo sapiens",
+    "repository": "Gene Expression Omnibus (GEO)",
+    "num_samples": 29,
+    "platform_accession": "GPL24676",
+    "platform_name": "Illumina NovaSeq 6000 (Homo sapiens)",
+    "submission_date": "Oct 02 2022",
+    "last_update_date": "Oct 05 2022",
+    "contact_name": "Neal,I,Callaghan",
+    "contact_email": "neal.callaghan@dal.ca",
+    "institution": "University of Toronto",
+    "pubmed_id": "N/A",
+    "publication_title": "No linked publication found",
+    "doi": "No linked publication found",
+    "bioproject_accession": "PRJNA886404",
+    "sra_accession": "N/A",
+    "raw_data_available": true,
+    "processed_data_available": true,
+    "supplementary_file_types": [
+      "xlsx"
+    ],
+    "provenance": {
+      "dataset_id": {
+        "source": "GEO XML",
+        "api_endpoint": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE214617&targ=self&form=text&view=brief",
+        "retrieval_date": "2026-07-14 04:40:41 UTC",
+        "confidence": "High (Verified)",
+        "raw_value": "GSE214617"
+      },
+      "title": {
+        "source": "NCBI GEO",
+        "api_endpoint": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE214617&targ=self&form=text&view=brief",
+        "retrieval_date": "2026-07-14 04:40:41 UTC",
+        "confidence": "High",
+        "raw_value": "Advanced physiological maturation of iPSC-derived human cardiomyocytes using an algorithm-directed optimization of defined media components"
+      },
+      "repository": {
+        "source": "GEO XML",
+        "api_endpoint": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE214617&targ=self&form=text&view=brief",
+        "retrieval_date": "2026-07-14 04:40:41 UTC",
+        "confidence": "High (Verified)",
+        "raw_value": "Gene Expression Omnibus (GEO)"
+      },
+      "organism": {
+        "source": "NCBI GEO",
+        "api_endpoint": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE214617&targ=self&form=text&view=brief",
+        "retrieval_date": "2026-07-14 04:40:41 UTC",
+        "confidence": "High",
+        "raw_value": "Homo sapiens"
+      },
+      "sample_count": {
+        "source": "NCBI GEO",
+        "api_endpoint": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE214617&targ=self&form=text&view=brief",
+        "retrieval_date": "2026-07-14 04:40:41 UTC",
+        "confidence": "High (Verified)",
+        "raw_value": 29
+      },
+      "platform": {
+        "source": "NCBI GEO",
+        "api_endpoint": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE214617&targ=self&form=text&view=brief",
+        "retrieval_date": "2026-07-14 04:40:41 UTC",
+        "confidence": "High",
+        "raw_value": "GPL24676 (Illumina NovaSeq 6000 (Homo sapiens))"
+      },
+      "doi": {
+        "source": "CrossRef",
+        "api_endpoint": "None",
+        "retrieval_date": "2026-07-14 04:40:41 UTC",
+        "confidence": "Low (Fallback)",
+        "raw_value": "No linked publication found"
+      },
+      "publication": {
+        "source": "PubMed",
+        "api_endpoint": "None",
+        "retrieval_date": "2026-07-14 04:40:41 UTC",
+        "confidence": "Low (Unpublished)",
+        "raw_value": "No linked publication found"
+      },
+      "funding": {
+        "source": "NIH Reporter",
+        "api_endpoint": "Declared in Title/Summary",
+        "retrieval_date": "2026-07-14 04:40:41 UTC",
+        "confidence": "Medium (Declared)",
+        "raw_value": "N/A"
+      },
+      "metadata_completeness": {
+        "source": "GEO XML",
+        "api_endpoint": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE214617&targ=self&form=text&view=brief",
+        "retrieval_date": "2026-07-14 04:40:41 UTC",
+        "confidence": "High",
+        "raw_value": "Completed schema validation"
+      },
+      "documentation_quality": {
+        "source": "GEO XML",
+        "api_endpoint": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE214617&targ=self&form=text&view=brief",
+        "retrieval_date": "2026-07-14 04:40:41 UTC",
+        "confidence": "High",
+        "raw_value": "Completed schema validation"
+      },
+      "fair_score": {
+        "source": "GEO XML",
+        "api_endpoint": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE214617&targ=self&form=text&view=brief",
+        "retrieval_date": "2026-07-14 04:40:41 UTC",
+        "confidence": "High",
+        "raw_value": "Completed schema validation"
+      }
+    },
+    "normalized": {
+      "title": "Advanced physiological maturation of iPSC-derived human cardiomyocytes using an algorithm-directed optimization of defined media components",
+      "description": "Induced pluripotent stem cell-derived cardiomyocytes (iPSC-CMs) hold tremendous promise for in vitro modeling to assess native myocardial function and disease mechanisms as well as testing drug safety and efficacy. However, current iPSC-CMs are functionally immature, resembling in vivo CMs of fetal or neonatal developmental states. The use of targeted culture media and organoid formats have been identified as potential high-yield contributors to improve CM maturation. This study presents a novel iPSC-CM maturation medium formulation, designed using a differential evolutionary approach with oxidative capacity as an objective metric for iterative optimization. Relative to gold-standard reference formulations, our approach significantly matured morphology, Ca2+ handling, electrophysiology, and metabolism, which was further validated by multi-omic screening, for cells in either pure or co-cultured microtissue formats. Together, these findings not only provide a reliable workflow for highly functional iPSC-CMs for downstream use, but also demonstrate the power of high-dimensional optimization processes in evoking advanced biological function in vitro.",
+      "repository": "Gene Expression Omnibus (GEO)",
+      "persistent_identifier": "GSE214617",
+      "public_access": true,
+      "raw_data_available": true,
+      "processed_data_available": true,
+      "machine_readable_format": true,
+      "metadata_complete": true,
+      "license": "CC0",
+      "protocol_available": false,
+      "publication_linked": false,
+      "citation_count": 0,
+      "reuse_count": 29,
+      "version_information": "Oct 02 2022",
+      "contact_information": "Neal,I,Callaghan (neal.callaghan@dal.ca), University of Toronto"
+    }
+  },
+  "GSE303108": {
+    "accession": "GSE303108",
+    "title": "A Panel of Differentially Methylated Putative Imprinting Control Regions Associated with Hepatocellular Carcinoma [Bisulfite-seq]",
+    "summary": "Site-specific 5-methylcytosine levels measured in mixed blood leukocytes have been used as surrogate for inaccessible tissues and associated with hepatocellular carcinoma (HCC) risk. However, findings are difficult to replicate as methylation patterns at many of these sites do not always correlate with those in liver tissue. An exception is methylation at imprinting control regions (ICRs), which regulate the monoallelic expression of imprinted genes, a developmentally critical process requiring parental allele-specific DNA methylation that is consistent across cell types. Aberrant methylation of several ICRs have been linked to advanced liver disease or HCC. We aim to create a DNA methylation-based risk stratification panel to improve early detection and triaging of patients before the onset of HCC in those at increased risk. From whole genome bisulfite sequencing (WGBS) of mixed leukocyte-derived DNA of HCC cases and controls, 1,519 regions were significantly differentially methylated. This list was augmented with a compendium of 3,275 HCC-, cirrhosis-, and fibrosis-associated differentially methylated regions (DMRs) identified from primary literature on PubMed, for a total of 4794 unique DMRs. Filtering these DMRs with a published list of ICRs revealed 97 ICRs within these liver disease-associated DMRs, 21 of them previously characterized and 76 novel. Of these ICRs, 46 replicated in an independent case-control comparison using the novel Illumina custom Imprintome Methylation array. Limited sample sizes notwithstanding, this comprehensive analysis supports the use of altered DNA methylation of ICRs for HCC risk stratification from readily accessible tissue, blood.",
+    "organism": "Homo sapiens",
+    "repository": "Gene Expression Omnibus (GEO)",
+    "num_samples": 61,
+    "platform_accession": "GPL24676",
+    "platform_name": "Illumina NovaSeq 6000 (Homo sapiens)",
+    "submission_date": "Jul 21 2025",
+    "last_update_date": "Jul 01 2026",
+    "contact_name": "Dereje,,Jima",
+    "contact_email": "ddjima2014@gmail.com",
+    "institution": "NCSU",
+    "pubmed_id": "42344443",
+    "publication_title": "Putative Imprinting Control Regions with Aberrant Blood-Based DNA Methylation are Associated with Hepatocellular Carcinoma Risk. [J Hepatocell Carcinoma, 2026] Authors: DiFrank AJ, Corliss BA, Park JJH, Rogers M, Skaar DA, Jima DD, Cowley M, Murphy SK, Liu A, Moylan CA, Hoyo C",
+    "doi": "10.2147/JHC.S605131",
+    "bioproject_accession": "PRJNA1294184",
+    "sra_accession": "N/A",
+    "raw_data_available": true,
+    "processed_data_available": true,
+    "supplementary_file_types": [
+      "gz"
+    ],
+    "provenance": {
+      "dataset_id": {
+        "source": "GEO XML",
+        "api_endpoint": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE303108&targ=self&form=text&view=brief",
+        "retrieval_date": "2026-07-14 04:41:16 UTC",
+        "confidence": "High (Verified)",
+        "raw_value": "GSE303108"
+      },
+      "title": {
+        "source": "NCBI GEO",
+        "api_endpoint": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE303108&targ=self&form=text&view=brief",
+        "retrieval_date": "2026-07-14 04:41:16 UTC",
+        "confidence": "High",
+        "raw_value": "A Panel of Differentially Methylated Putative Imprinting Control Regions Associated with Hepatocellular Carcinoma [Bisulfite-seq]"
+      },
+      "repository": {
+        "source": "GEO XML",
+        "api_endpoint": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE303108&targ=self&form=text&view=brief",
+        "retrieval_date": "2026-07-14 04:41:16 UTC",
+        "confidence": "High (Verified)",
+        "raw_value": "Gene Expression Omnibus (GEO)"
+      },
+      "organism": {
+        "source": "NCBI GEO",
+        "api_endpoint": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE303108&targ=self&form=text&view=brief",
+        "retrieval_date": "2026-07-14 04:41:16 UTC",
+        "confidence": "High",
+        "raw_value": "Homo sapiens"
+      },
+      "sample_count": {
+        "source": "NCBI GEO",
+        "api_endpoint": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE303108&targ=self&form=text&view=brief",
+        "retrieval_date": "2026-07-14 04:41:16 UTC",
+        "confidence": "High (Verified)",
+        "raw_value": 61
+      },
+      "platform": {
+        "source": "NCBI GEO",
+        "api_endpoint": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE303108&targ=self&form=text&view=brief",
+        "retrieval_date": "2026-07-14 04:41:16 UTC",
+        "confidence": "High",
+        "raw_value": "GPL24676 (Illumina NovaSeq 6000 (Homo sapiens))"
+      },
+      "doi": {
+        "source": "CrossRef",
+        "api_endpoint": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&id=42344443&retmode=json",
+        "retrieval_date": "2026-07-14 04:41:16 UTC",
+        "confidence": "High",
+        "raw_value": "10.2147/JHC.S605131"
+      },
+      "publication": {
+        "source": "PubMed",
+        "api_endpoint": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&id=42344443&retmode=json",
+        "retrieval_date": "2026-07-14 04:41:16 UTC",
+        "confidence": "High",
+        "raw_value": "Putative Imprinting Control Regions with Aberrant Blood-Based DNA Methylation are Associated with Hepatocellular Carcinoma Risk. [J Hepatocell Carcinoma, 2026] Authors: DiFrank AJ, Corliss BA, Park JJH, Rogers M, Skaar DA, Jima DD, Cowley M, Murphy SK, Liu A, Moylan CA, Hoyo C"
+      },
+      "funding": {
+        "source": "NIH Reporter",
+        "api_endpoint": "Declared in Title/Summary",
+        "retrieval_date": "2026-07-14 04:41:16 UTC",
+        "confidence": "Medium (Declared)",
+        "raw_value": "N/A"
+      },
+      "metadata_completeness": {
+        "source": "GEO XML",
+        "api_endpoint": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE303108&targ=self&form=text&view=brief",
+        "retrieval_date": "2026-07-14 04:41:16 UTC",
+        "confidence": "High",
+        "raw_value": "Completed schema validation"
+      },
+      "documentation_quality": {
+        "source": "GEO XML",
+        "api_endpoint": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE303108&targ=self&form=text&view=brief",
+        "retrieval_date": "2026-07-14 04:41:16 UTC",
+        "confidence": "High",
+        "raw_value": "Completed schema validation"
+      },
+      "fair_score": {
+        "source": "GEO XML",
+        "api_endpoint": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE303108&targ=self&form=text&view=brief",
+        "retrieval_date": "2026-07-14 04:41:16 UTC",
+        "confidence": "High",
+        "raw_value": "Completed schema validation"
+      }
+    },
+    "normalized": {
+      "title": "A Panel of Differentially Methylated Putative Imprinting Control Regions Associated with Hepatocellular Carcinoma [Bisulfite-seq]",
+      "description": "Site-specific 5-methylcytosine levels measured in mixed blood leukocytes have been used as surrogate for inaccessible tissues and associated with hepatocellular carcinoma (HCC) risk. However, findings are difficult to replicate as methylation patterns at many of these sites do not always correlate with those in liver tissue. An exception is methylation at imprinting control regions (ICRs), which regulate the monoallelic expression of imprinted genes, a developmentally critical process requiring parental allele-specific DNA methylation that is consistent across cell types. Aberrant methylation of several ICRs have been linked to advanced liver disease or HCC. We aim to create a DNA methylation-based risk stratification panel to improve early detection and triaging of patients before the onset of HCC in those at increased risk. From whole genome bisulfite sequencing (WGBS) of mixed leukocyte-derived DNA of HCC cases and controls, 1,519 regions were significantly differentially methylated. This list was augmented with a compendium of 3,275 HCC-, cirrhosis-, and fibrosis-associated differentially methylated regions (DMRs) identified from primary literature on PubMed, for a total of 4794 unique DMRs. Filtering these DMRs with a published list of ICRs revealed 97 ICRs within these liver disease-associated DMRs, 21 of them previously characterized and 76 novel. Of these ICRs, 46 replicated in an independent case-control comparison using the novel Illumina custom Imprintome Methylation array. Limited sample sizes notwithstanding, this comprehensive analysis supports the use of altered DNA methylation of ICRs for HCC risk stratification from readily accessible tissue, blood.",
+      "repository": "Gene Expression Omnibus (GEO)",
+      "persistent_identifier": "GSE303108",
+      "public_access": true,
+      "raw_data_available": true,
+      "processed_data_available": true,
+      "machine_readable_format": true,
+      "metadata_complete": true,
+      "license": "CC0",
+      "protocol_available": false,
+      "publication_linked": true,
+      "citation_count": 0,
+      "reuse_count": 61,
+      "version_information": "Jul 21 2025",
+      "contact_information": "Dereje,,Jima (ddjima2014@gmail.com), NCSU"
+    }
+  }
+}

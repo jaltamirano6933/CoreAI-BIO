@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use CoreAI BIO in your research or project, please cite it as below."
+title: "CoreAI BIO: An Open-Source AI-Assisted Platform for Stem Cell Engineering & Exploratory Microscopy Analysis"
+authors:
+  - family-names: "CoreAI BIO Team"
+    given-names: "Scientific Software Engineering Core"
+version: "1.0.0"
+date-released: 2026-07-26
+repository-code: "https://github.com/CoreAI-BIO/CoreAI-BIO"
+license: MIT
+keywords:
+  - "Stem Cell Engineering"
+  - "iPSC Colony Morphometry"
+  - "Computer Vision Microscopy"
+  - "Bioinformatics"
+  - "FAIR Data Index"
+  - "Differential Gene Expression"

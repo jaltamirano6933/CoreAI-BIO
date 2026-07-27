@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}CoreAI BIO{% endblock %}</title>
+    <!-- Modern Tech Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Custom Stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <div class="app-container">
+        <!-- Top Navigation Header -->
+        <header class="app-header">
+            <div class="header-logo">
+                <a href="/">
+                    <span class="logo-symbol">🧬</span>
+                    <span class="logo-text">CoreAI <span class="logo-highlight">BIO</span></span>
+                </a>
+            </div>
+            <nav class="header-nav">
+                <a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}">Home</a>
+                <a href="/sindex" class="nav-link {% if request.path == '/sindex' %}active{% endif %}">S-Index</a>
+                <a href="/culture" class="nav-link {% if request.path == '/culture' %}active{% endif %}">Culture</a>
+                <a href="/fate" class="nav-link {% if request.path == '/fate' %}active{% endif %}">Fate</a>
+                <a href="/morphology" class="nav-link {% if request.path == '/morphology' %}active{% endif %}">Morphology</a>
+                <a href="/laboratory" class="nav-link {% if request.path == '/laboratory' %}active{% endif %}">AI Lab</a>
+                <a href="/assistant" class="nav-link {% if request.path == '/assistant' %}active{% endif %}">Assistant</a>
+            </nav>
+            <div class="header-status">
+                <span class="status-indicator"></span>
+                <span class="status-label">System Online</span>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="app-main">
+            <div class="main-content-wrapper">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+
+        <!-- App Footer with Regulatory Disclaimer -->
+        <footer class="app-footer">
+            <div class="disclaimer-banner">
+                <div class="disclaimer-icon">⚠️</div>
+                <div class="disclaimer-text">
+                    <strong>Regulatory Disclaimer:</strong> For research and educational use only. Not for clinical diagnosis or treatment decisions.
+                </div>
+            </div>
+            <div class="footer-meta">
+                <p>&copy; 2026 CoreAI BIO. Advanced Biomedical Analytics Platform.</p>
+            </div>
+        </footer>
+    </div>
+</body>
+</html>

@@ -1,0 +1,636 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="dashboard-header" style="margin-bottom: 1.5rem;">
+    <div>
+        <h2 style="font-size: 1.6rem; font-weight: 800; color: var(--text-primary); display: flex; align-items: center; gap: 0.6rem;">
+            🔬 Cell Morphology Analyzer
+        </h2>
+        <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.25rem;">
+            Computer Vision Cell Segmentation, Image Quality Diagnostics & Rule-Based Morphological Classification
+        </p>
+    </div>
+</div>
+
+<!-- Scientific Limitation & Exploratory Scope Notice Banner -->
+<div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: var(--border-radius-md); padding: 0.85rem 1.25rem; margin-bottom: 1.5rem; display: flex; align-items: flex-start; gap: 0.75rem;">
+    <span style="font-size: 1.2rem;">⚠️</span>
+    <div style="font-size: 0.82rem; color: #f59e0b; line-height: 1.45;">
+        <strong>Scientific Disclaimer:</strong> This analysis is exploratory and does not determine tissue health or clinical diagnosis.
+    </div>
+</div>
+
+<!-- Upload Panel & Sample Control -->
+<div class="detail-panel" style="margin-bottom: 2rem;">
+    <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <h3>📁 Microscopy Image Upload & Input Stream</h3>
+        <span class="panel-status info-badge" style="color: #38bdf8; border-color: rgba(56,189,248,0.3); background: rgba(56,189,248,0.1);">Formats: PNG, JPG, JPEG, TIFF</span>
+    </div>
+    <div class="panel-body">
+        <form id="morphology-upload-form" style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+            <input type="file" id="morphology-file-input" accept=".png, .jpg, .jpeg, .tif, .tiff" style="display: none;" onchange="handleFileSelect(event)">
+            
+            <button type="button" onclick="document.getElementById('morphology-file-input').click()" class="action-btn secondary-btn" style="padding: 0.6rem 1.2rem; font-weight: 600; font-size: 0.85rem;">
+                📷 Choose Microscopy Image...
+            </button>
+            
+            <span id="selected-filename" style="color: var(--text-secondary); font-size: 0.85rem;">sample_microscopy.png (Default Synthetic Sample)</span>
+
+            <select id="sample-type-select" style="padding: 0.6rem 1rem; border-radius: var(--border-radius-sm); border: 1px solid rgba(56, 189, 248, 0.4); background: #0f172a; color: #38bdf8; font-size: 0.85rem; font-weight: 700; cursor: pointer;">
+                <optgroup label="PRIMARY VALIDATED WORKFLOWS" style="background: #1e293b; color: #38bdf8;">
+                    <option value="stem_cell" selected>🧬 Stem Cells (iPSC / ESC) (Primary Workflow)</option>
+                    <option value="generic">🧫 Generic Tissue (Validated Morphometry)</option>
+                </optgroup>
+                <optgroup label="EXPERIMENTAL TISSUE PIPELINES" style="background: #1e293b; color: #94a3b8;">
+                    <option value="adipose">🧈 Adipose Tissue (Experimental)</option>
+                    <option value="muscle">💪 Skeletal Muscle (Experimental)</option>
+                    <option value="thyroid">🦋 Thyroid (Experimental)</option>
+                    <option value="pancreas">🫧 Pancreas (Experimental)</option>
+                    <option value="spinal_cord">🧠 Spinal Cord (Experimental)</option>
+                    <option value="myocardium">❤️ Myocardium (Experimental)</option>
+                    <option value="testis">🥚 Testis (Experimental)</option>
+                    <option value="ovary">🌸 Ovary (Experimental)</option>
+                </optgroup>
+            </select>
+
+            <!-- Optional Spatial Calibration & Image Source (Directives #5 & #6) -->
+            <input type="number" step="any" id="in-um-per-px" placeholder="µm / px (Optional)" style="width: 140px; padding: 0.6rem; border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); background: #0f172a; color: var(--text-primary); font-size: 0.82rem;">
+            
+            <select id="in-image-source" style="padding: 0.6rem; border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); background: #0f172a; color: var(--text-secondary); font-size: 0.82rem;">
+                <option value="Unknown">Source: Unknown</option>
+                <option value="Real microscopy image">Real microscopy image</option>
+                <option value="Synthetic test image">Synthetic test image</option>
+                <option value="Prepared slide image">Prepared slide image</option>
+            </select>
+
+            <button type="submit" id="analyze-submit-btn" class="action-btn primary-btn" style="padding: 0.6rem 1.4rem; font-weight: 700; font-size: 0.85rem; margin-left: auto;">
+                ⚡ Analyze Morphology
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Upload Provenance & Telemetry Metadata Banner -->
+<div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); border-radius: var(--border-radius-md); padding: 0.85rem 1.25rem; margin-bottom: 1.5rem; font-size: 0.8rem; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.75rem;">
+    <div style="display: flex; flex-wrap: wrap; gap: 1.2rem; align-items: center;">
+        <div><strong>Analysis ID:</strong> <span id="rpt-analysis-id" style="color: #a855f7; font-weight: 700;">--</span></div>
+        <div><strong>Profile:</strong> <span id="rpt-profile" style="color: #f59e0b; font-weight: 700;">--</span></div>
+        <div><strong>Image Source:</strong> <span id="rpt-image-source" style="color: #10b981; font-weight: 600;">--</span></div>
+        <div><strong>Uploaded File:</strong> <span id="rpt-filename" style="color: #38bdf8; font-weight: 600;">--</span></div>
+        <div><strong>SHA256 Hash:</strong> <code id="rpt-sha256" style="color: #10b981; font-size: 0.75rem;">--</code></div>
+    </div>
+    
+    <!-- New Action Button: Send Results to AI Laboratory (Directive #1) -->
+    <button id="send-to-lab-btn" disabled onclick="sendResultsToLab()" class="action-btn secondary-btn" style="padding: 0.5rem 1rem; font-size: 0.8rem; font-weight: 700; background: linear-gradient(135deg, rgba(168,85,247,0.2), rgba(59,130,246,0.2)); border: 1px solid rgba(168,85,247,0.5); color: #c084fc; cursor: not-allowed; opacity: 0.6; transition: all 0.2s;" title="Segmentation analysis must complete before sending results to AI Lab">
+        🧠 Send Results to AI Laboratory
+    </button>
+</div>
+
+<!-- Spatial Calibration & Unit Notice Banner (Directive #4 & #5) -->
+<div id="unit-notice-banner" style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: var(--border-radius-md); padding: 0.75rem 1.25rem; margin-bottom: 1.5rem; font-size: 0.82rem; color: #38bdf8; font-weight: 600;">
+    ℹ️ <span id="unit-notice-text">Measurements are reported in pixels because this image is not spatially calibrated.</span>
+</div>
+
+<!-- Summary Metrics Banner Grid -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+    <!-- Card 1: Technical Pipeline Status (Green Badge) -->
+    <div class="stat-card" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: var(--border-radius-md); padding: 1.2rem;">
+        <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">SEGMENTATION STATUS</span>
+        <div id="stat-pipeline-status" style="font-size: 1.2rem; font-weight: 800; color: #10b981; margin: 0.3rem 0;">🟢 Completed</div>
+        <span style="font-size: 0.75rem; color: var(--text-secondary);">Pipeline Execution: Success</span>
+    </div>
+
+    <!-- Card 2: Interpretation Confidence (Yellow/Green Badge) -->
+    <div class="stat-card" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: var(--border-radius-md); padding: 1.2rem;">
+        <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">INTERPRETATION CONFIDENCE</span>
+        <div id="stat-interp-conf" style="font-size: 1.2rem; font-weight: 800; color: #f59e0b; margin: 0.3rem 0;">🟡 Low</div>
+        <span id="stat-interp-subtext" style="font-size: 0.75rem; color: var(--text-secondary);">Exploratory Results</span>
+    </div>
+
+    <!-- Card 3: Structure Count -->
+    <div class="stat-card" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: var(--border-radius-md); padding: 1.2rem;">
+        <span id="stat-cell-count-label" style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">SEGMENTED CANDIDATE STRUCTURES</span>
+        <div id="stat-cell-count" style="font-size: 1.4rem; font-weight: 800; color: #38bdf8; margin: 0.3rem 0;">--</div>
+        <span style="font-size: 0.75rem; color: var(--text-secondary);">Candidate Regions</span>
+    </div>
+
+    <!-- Card 4: Mean Circularity -->
+    <div class="stat-card" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: var(--border-radius-md); padding: 1.2rem;">
+        <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">MEAN CIRCULARITY</span>
+        <div id="stat-mean-circ" style="font-size: 1.4rem; font-weight: 800; color: #f59e0b; margin: 0.3rem 0;">--</div>
+        <span style="font-size: 0.75rem; color: var(--text-secondary);">(4π × Area) / Perimeter²</span>
+    </div>
+
+    <!-- Card 5: Image Sharpness -->
+    <div class="stat-card" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: var(--border-radius-md); padding: 1.2rem;">
+        <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">IMAGE SHARPNESS</span>
+        <div id="stat-sharpness" style="font-size: 1.4rem; font-weight: 800; color: #a855f7; margin: 0.3rem 0;">--</div>
+        <span style="font-size: 0.75rem; color: var(--text-secondary);">Laplacian Variance</span>
+    </div>
+</div>
+
+<!-- Technical Failure Alert Banner (Reserved ONLY for True Crashes / Corrupt Files) -->
+<div id="tech-failure-banner" style="display: none; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.5); border-radius: var(--border-radius-md); padding: 1rem 1.25rem; margin-bottom: 2rem; color: #f87171; font-size: 0.85rem; font-weight: 600;">
+    <span style="font-size: 1.1rem; margin-right: 0.5rem;">❌ Technical Failure:</span> <span id="tech-failure-text">Pipeline execution failed.</span>
+</div>
+
+<!-- Compact Interpretation Notes Panel (Amber / Yellow) -->
+<div id="interpretation-notes-panel" class="detail-panel" style="display: none; margin-bottom: 2rem; border-color: rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.05);">
+    <div class="panel-header" style="border-bottom: 1px solid rgba(245, 158, 11, 0.2);">
+        <h3 style="color: #f59e0b; display: flex; align-items: center; gap: 0.5rem;">
+            ⚠️ Interpretation Notes
+        </h3>
+    </div>
+    <div class="panel-body" style="padding: 1.25rem;">
+        <p id="interpretation-notes-main" style="font-weight: 600; color: #f59e0b; margin-bottom: 0.75rem; font-size: 0.92rem; line-height: 1.5;">
+            The morphology pipeline completed successfully. Candidate regions were segmented and quantitative morphometric measurements were generated.
+            However, this image did not satisfy the recommended quality criteria for reliable biological interpretation.
+        </p>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.25rem;">
+            <div>
+                <h4 style="font-size: 0.82rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.5rem;">Quality Observations</h4>
+                <ul id="interpretation-failed-checks" style="padding-left: 1.2rem; color: var(--text-secondary); font-size: 0.85rem; line-height: 1.6;">
+                    <li>Very low sharpness</li>
+                    <li>Low contrast</li>
+                </ul>
+            </div>
+            <div>
+                <h4 style="font-size: 0.82rem; text-transform: uppercase; color: #38bdf8; margin-bottom: 0.5rem;">Recommended Actions for High Confidence</h4>
+                <ul id="interpretation-recommendations" style="padding-left: 1.2rem; color: var(--text-secondary); font-size: 0.85rem; line-height: 1.6;">
+                    <li>Refocus the microscope to increase boundary sharpness</li>
+                    <li>Improve illumination and contrast</li>
+                    <li>Avoid glare and shadows</li>
+                    <li>Use a higher-resolution image</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Image Processing & Contour Overlay Grid (4 Cards) -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+    <!-- Card 1: Original Image -->
+    <div class="detail-panel">
+        <div class="panel-header">
+            <h3>🖼️ Original Input Microscopy Image</h3>
+        </div>
+        <div class="panel-body" style="text-align: center;">
+            <img id="fig-original" src="/static/results/morphology/original_image.png" alt="Original Image" style="width: 100%; border-radius: var(--border-radius-md); border: 1px solid var(--border-color);">
+        </div>
+    </div>
+
+    <!-- Card 2: Grayscale Image -->
+    <div class="detail-panel">
+        <div class="panel-header">
+            <h3>☯️ Intensity Grayscale Conversion</h3>
+        </div>
+        <div class="panel-body" style="text-align: center;">
+            <img id="fig-grayscale" src="/static/results/morphology/grayscale_image.png" alt="Grayscale Image" style="width: 100%; border-radius: var(--border-radius-md); border: 1px solid var(--border-color);">
+        </div>
+    </div>
+
+    <!-- Card 3: Binary Threshold -->
+    <div class="detail-panel">
+        <div class="panel-header">
+            <h3>🔲 Otsu Binary Thresholding & Closing</h3>
+        </div>
+        <div class="panel-body" style="text-align: center;">
+            <img id="fig-binary" src="/static/results/morphology/binary_threshold.png" alt="Binary Threshold" style="width: 100%; border-radius: var(--border-radius-md); border: 1px solid var(--border-color);">
+        </div>
+    </div>
+
+    <!-- Card 4: Cell Contour Overlay -->
+    <div class="detail-panel">
+        <div class="panel-header">
+            <h3 id="fig-overlay-header">🟢 Segmented Region Overlay</h3>
+        </div>
+        <div class="panel-body" style="text-align: center;">
+            <img id="fig-contours" src="/static/results/morphology/cell_contour_overlay.png" alt="Contour Overlay" style="width: 100%; border-radius: var(--border-radius-md); border: 1px solid var(--border-color);">
+        </div>
+    </div>
+</div>
+
+<!-- Metrics & Measurements Tables Section -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+    <!-- Image Quality Diagnostics -->
+    <div class="detail-panel">
+        <div class="panel-header">
+            <h3>📸 Image Quality & Processing Diagnostics</h3>
+        </div>
+        <div class="panel-body">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.83rem;">
+                <tbody>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <td style="padding: 0.6rem 0; color: var(--text-muted);">Image Dimensions</td>
+                        <td id="tbl-dims" style="padding: 0.6rem 0; font-weight: 700; color: var(--text-primary); text-align: right;">--</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <td style="padding: 0.6rem 0; color: var(--text-muted);">Mean Brightness (0-255)</td>
+                        <td id="tbl-brightness" style="padding: 0.6rem 0; font-weight: 600; color: var(--text-secondary); text-align: right;">--</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <td style="padding: 0.6rem 0; color: var(--text-muted);">Contrast (Pixel Std Dev)</td>
+                        <td id="tbl-contrast" style="padding: 0.6rem 0; font-weight: 600; color: var(--text-secondary); text-align: right;">--</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <td style="padding: 0.6rem 0; color: var(--text-muted);">Sharpness (Laplacian Var)</td>
+                        <td id="tbl-sharpness" style="padding: 0.6rem 0; font-weight: 600; color: #a855f7; text-align: right;">--</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <td style="padding: 0.6rem 0; color: var(--text-muted);">Noise Estimate (Residual Std)</td>
+                        <td id="tbl-noise" style="padding: 0.6rem 0; font-weight: 600; color: var(--text-secondary); text-align: right;">--</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <td style="padding: 0.6rem 0; color: var(--text-muted);">FOV Coverage Area</td>
+                        <td id="tbl-fov-coverage" style="padding: 0.6rem 0; font-weight: 600; color: #38bdf8; text-align: right;">--</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <td style="padding: 0.6rem 0; color: var(--text-muted);">Raw vs Accepted Contours</td>
+                        <td id="tbl-contour-counts" style="padding: 0.6rem 0; font-weight: 700; color: #10b981; text-align: right;">--</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 0.6rem 0; color: var(--text-muted);">Relative Candidate Area %</td>
+                        <td id="tbl-rel-area" style="padding: 0.6rem 0; font-weight: 700; color: #a855f7; text-align: right;">--</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Morphological Summary Measurements -->
+    <div class="detail-panel">
+        <div class="panel-header">
+            <h3 id="tbl-summary-header">📏 Morphometric Summary</h3>
+        </div>
+        <div class="panel-body">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.83rem;">
+                <tbody>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <td id="tbl-area-label" style="padding: 0.6rem 0; color: var(--text-muted);">Mean Region Area</td>
+                        <td id="tbl-mean-area" style="padding: 0.6rem 0; font-weight: 700; color: #38bdf8; text-align: right;">--</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <td id="tbl-perim-label" style="padding: 0.6rem 0; color: var(--text-muted);">Mean Region Perimeter</td>
+                        <td id="tbl-mean-perim" style="padding: 0.6rem 0; font-weight: 600; color: var(--text-secondary); text-align: right;">--</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <td style="padding: 0.6rem 0; color: var(--text-muted);">Mean Circularity (0-1)</td>
+                        <td id="tbl-mean-circ" style="padding: 0.6rem 0; font-weight: 700; color: #f59e0b; text-align: right;">--</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <td style="padding: 0.6rem 0; color: var(--text-muted);">Mean Aspect Ratio (W/H)</td>
+                        <td id="tbl-mean-aspect" style="padding: 0.6rem 0; font-weight: 600; color: var(--text-secondary); text-align: right;">--</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 0.6rem 0; color: var(--text-muted);">Mean Solidity (Area/Hull)</td>
+                        <td id="tbl-mean-solidity" style="padding: 0.6rem 0; font-weight: 600; color: #10b981; text-align: right;">--</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Individual Segmented Cells Table -->
+<div class="detail-panel" style="margin-bottom: 2rem;">
+    <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 id="tbl-cell-header-title">📊 Segmented Individual Cell Measurements</h3>
+        <span class="panel-status info-badge" style="color: #10b981; border-color: rgba(16,185,129,0.3); background-color: rgba(16,185,129,0.1);">Per-Cell Contours</span>
+    </div>
+    <div class="panel-body" style="overflow-x: auto; max-height: 400px;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.82rem;">
+            <thead>
+                <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">
+                    <th style="padding: 0.75rem 0.5rem;">Cell ID</th>
+                    <th style="padding: 0.75rem 0.5rem;">Area (px²)</th>
+                    <th style="padding: 0.75rem 0.5rem;">Perimeter (px)</th>
+                    <th style="padding: 0.75rem 0.5rem;">Circularity</th>
+                    <th style="padding: 0.75rem 0.5rem;">Aspect Ratio</th>
+                    <th style="padding: 0.75rem 0.5rem;">Solidity</th>
+                </tr>
+            </thead>
+            <tbody id="cells-table-body">
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 1.5rem; color: var(--text-muted);">
+                        Loading individual cell measurements...
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+let selectedFile = null;
+let lastAnalysisData = null;
+
+function handleFileSelect(event) {
+    if (event.target.files && event.target.files[0]) {
+        selectedFile = event.target.files[0];
+        document.getElementById('selected-filename').innerText = `${selectedFile.name} (${(selectedFile.size / 1024).toFixed(1)} KB)`;
+    }
+}
+
+function sendResultsToLab() {
+    if (!lastAnalysisData) {
+        alert("No completed morphology analysis available to transfer.");
+        return;
+    }
+
+    const btn = document.getElementById('send-to-lab-btn');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerText = "⏳ Transferring to AI Lab...";
+    }
+
+    fetch('/api/laboratory/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(lastAnalysisData)
+    })
+    .then(res => res.json())
+    .then(resData => {
+        if (resData.status === 'success') {
+            window.location.href = '/laboratory';
+        } else {
+            alert(`Transfer failed: ${resData.message}`);
+        }
+    })
+    .catch(err => alert(`Network error: ${err.message}`))
+    .finally(() => {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerText = "🧠 Send Results to AI Laboratory";
+        }
+    });
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+    loadMorphologySummary();
+
+    document.getElementById('morphology-upload-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        clearPreviousResults();
+        const btn = document.getElementById('analyze-submit-btn');
+        btn.disabled = true;
+        btn.innerHTML = `⏳ Analyzing Image...`;
+
+        const formData = new FormData();
+        if (selectedFile) {
+            formData.append('image', selectedFile);
+        }
+        formData.append('sample_type', document.getElementById('sample-type-select').value);
+
+        const umVal = document.getElementById('in-um-per-px').value.trim();
+        if (umVal) {
+            formData.append('um_per_pixel', umVal);
+            formData.append('calibration_source', 'Manual Input');
+        }
+        const imgSrc = document.getElementById('in-image-source').value;
+        if (imgSrc) {
+            formData.append('image_source', imgSrc);
+        }
+
+        fetch('/api/morphology/analyze', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            console.log("[Morphology API Response]", data);
+            if (data.status === 'success') {
+                renderMorphologyResults(data);
+            } else {
+                alert(`Morphology analysis failed: ${data.message}`);
+            }
+        })
+        .catch(err => console.error("Error analyzing image:", err))
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = `⚡ Analyze Morphology`;
+        });
+    });
+});
+
+function clearPreviousResults() {
+    document.getElementById('rpt-analysis-id').innerText = 'Analyzing...';
+    document.getElementById('rpt-profile').innerText = '...';
+    document.getElementById('rpt-image-source').innerText = '...';
+    document.getElementById('rpt-filename').innerText = '...';
+    document.getElementById('rpt-sha256').innerText = '...';
+
+    const clsElem = document.getElementById('stat-morph-class');
+    if (clsElem) clsElem.innerText = '--';
+    const confElem = document.getElementById('stat-morph-conf');
+    if (confElem) confElem.innerText = 'Confidence: --';
+    document.getElementById('stat-cell-count-label').innerText = 'SEGMENTED CANDIDATE STRUCTURES';
+    document.getElementById('stat-cell-count').innerText = '--';
+    document.getElementById('stat-mean-circ').innerText = '--';
+    document.getElementById('stat-sharpness').innerText = '--';
+
+    document.getElementById('tbl-dims').innerText = '--';
+    document.getElementById('tbl-brightness').innerText = '--';
+    document.getElementById('tbl-contrast').innerText = '--';
+    document.getElementById('tbl-sharpness').innerText = '--';
+    document.getElementById('tbl-noise').innerText = '--';
+
+    document.getElementById('tbl-mean-area').innerText = '--';
+    document.getElementById('tbl-mean-perim').innerText = '--';
+    document.getElementById('tbl-mean-circ').innerText = '--';
+    document.getElementById('tbl-mean-aspect').innerText = '--';
+    document.getElementById('tbl-mean-solidity').innerText = '--';
+
+    document.getElementById('cells-table-body').innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 1.5rem; color: var(--text-muted);">Processing contours...</td></tr>`;
+}
+
+function loadMorphologySummary() {
+    clearPreviousResults();
+    fetch('/api/morphology/summary')
+        .then(res => res.json())
+        .then(data => {
+            console.log("[Morphology Summary API Response]", data);
+            renderMorphologyResults(data);
+        })
+        .catch(err => console.error("Error loading morphology summary:", err));
+}
+
+function renderMorphologyResults(data) {
+    lastAnalysisData = data;
+    const sendBtn = document.getElementById('send-to-lab-btn');
+    if (sendBtn && data && data.status === 'success') {
+        sendBtn.disabled = false;
+        sendBtn.style.opacity = '1.0';
+        sendBtn.style.cursor = 'pointer';
+        sendBtn.title = 'Transfer complete morphology results to central AI Laboratory workspace';
+    }
+
+    const cls = data.classification || {};
+    const q = data.quality_metrics || {};
+    const m = data.cell_measurements || {};
+    const dim = data.dimensions || {};
+    const figs = data.figures || {};
+    const calib = data.spatial_calibration || {};
+
+    // 0. Analysis Telemetry & Profile Metadata
+    document.getElementById('rpt-analysis-id').innerText = data.analysis_id || 'MORPH-SUMMARY';
+    document.getElementById('rpt-profile').innerText = (data.profile_used || data.sample_type || 'generic').toUpperCase();
+    document.getElementById('rpt-image-source').innerText = data.image_source || 'Unknown';
+    document.getElementById('rpt-filename').innerText = data.filename || 'microscopy_image';
+    document.getElementById('rpt-sha256').innerText = data.sha256 ? (data.sha256.substring(0, 16) + '...') : '--';
+
+    // Unit Notice Banner
+    const noticeText = m.unit_notice || calib.unit_notice || "Measurements are reported in pixels because this image is not spatially calibrated.";
+    document.getElementById('unit-notice-text').innerText = noticeText;
+
+    // 1. Classification & Stat Cards
+    const clsElem = document.getElementById('stat-morph-class');
+    if (clsElem) {
+        const resultStr = cls.result || 'Morphological Pattern: Regular';
+        clsElem.innerText = resultStr;
+        if (resultStr.includes('Completed') && !resultStr.includes('Limited')) {
+            clsElem.style.color = '#10b981';
+        } else if (resultStr.includes('Limited')) {
+            clsElem.style.color = '#f59e0b';
+        } else {
+            clsElem.style.color = '#ef4444';
+        }
+    }
+
+    // 1. Independent Status Indicators: Technical Pipeline Status & Interpretation Confidence
+    const pipeStatusElem = document.getElementById('stat-pipeline-status');
+    pipeStatusElem.innerText = `🟢 ${data.pipeline_status || 'Completed'}`;
+    pipeStatusElem.style.color = '#10b981';
+
+    const interpConfElem = document.getElementById('stat-interp-conf');
+    const interpSubtextElem = document.getElementById('stat-interp-subtext');
+    const interpConf = data.interpretation_confidence || (data.classification_status === 'inconclusive' || data.quality_status === 'poor' ? 'Low' : 'High');
+    
+    if (interpConf === 'Low') {
+        interpConfElem.innerText = '🟡 Low';
+        interpConfElem.style.color = '#f59e0b';
+        interpSubtextElem.innerText = 'Exploratory Results';
+    } else if (interpConf === 'Moderate') {
+        interpConfElem.innerText = '🟡 Moderate';
+        interpConfElem.style.color = '#f59e0b';
+        interpSubtextElem.innerText = 'Exploratory Results';
+    } else {
+        interpConfElem.innerText = '🟢 High';
+        interpConfElem.style.color = '#10b981';
+        interpSubtextElem.innerText = 'Validated Quality';
+    }
+
+    const structureLabel = m.structure_label || data.structure_label || "Segmented Candidate Structures";
+    document.getElementById('stat-cell-count-label').innerText = structureLabel.toUpperCase();
+    document.getElementById('stat-cell-count').innerText = (m.cell_count !== undefined) ? m.cell_count : 0;
+    document.getElementById('stat-mean-circ').innerText = (m.mean_circularity !== undefined) ? m.mean_circularity : 0;
+    document.getElementById('stat-sharpness').innerText = (q.sharpness !== undefined) ? q.sharpness : 0;
+
+    // Profile Status Badge & Header Labels
+    const isStemCell = (data.profile_used === 'stem_cell' || data.profile_used === 'ipsc');
+    const isGeneric = (data.profile_used === 'generic');
+    
+    document.getElementById('fig-overlay-header').innerText = isStemCell ? '🟢 Segmented Colony Overlay' : '🟢 Segmented Region Overlay';
+    document.getElementById('tbl-summary-header').innerText = isStemCell ? '📏 Colony Morphometric Summary' : '📏 Morphometric Summary';
+    document.getElementById('tbl-area-label').innerText = isStemCell ? 'Mean Colony Area' : 'Mean Region Area';
+    document.getElementById('tbl-perim-label').innerText = isStemCell ? 'Mean Colony Perimeter' : 'Mean Region Perimeter';
+
+    // Dynamic Table Title Header
+    const headerTitleElem = document.getElementById('tbl-cell-header-title');
+    if (headerTitleElem) {
+        let titleStr = data.table_header_title;
+        if (!titleStr) {
+            if (data.quality_status === 'poor' || data.classification_status === 'inconclusive') {
+                titleStr = 'Segmented Candidate Regions';
+            } else if (isStemCell) {
+                titleStr = 'Colony Measurements';
+            } else {
+                titleStr = 'Region Measurements';
+            }
+        }
+        headerTitleElem.innerText = `📊 ${titleStr}`;
+    }
+
+    // Technical Failure Banner - Reserved ONLY for crashes / corrupted files
+    document.getElementById('tech-failure-banner').style.display = 'none';
+
+    // Compact Amber Interpretation Notes Panel
+    const interpNotesPanel = document.getElementById('interpretation-notes-panel');
+    if (interpConf === 'Low' || data.quality_status === 'poor' || data.classification_status === 'inconclusive') {
+        interpNotesPanel.style.display = 'block';
+        document.getElementById('interpretation-notes-main').innerText = data.interpretation_notes || cls.reason || "The morphology pipeline completed successfully. Candidate regions were segmented and morphometric measurements were generated. However, image quality did not satisfy recommended criteria for reliable biological interpretation.";
+        
+        const failedChecksElem = document.getElementById('interpretation-failed-checks');
+        const failMsgs = data.detailed_failure_messages || [];
+        if (failMsgs.length > 0) {
+            failedChecksElem.innerHTML = failMsgs.map(m => `<li>${m}</li>`).join('');
+        } else {
+            failedChecksElem.innerHTML = `<li>Very low sharpness: ${q.sharpness || '--'}</li><li>Low contrast: ${q.contrast || '--'}</li><li>Boundary definition below optimal threshold</li>`;
+        }
+
+        const recsElem = document.getElementById('interpretation-recommendations');
+        const recs = data.inconclusive_recommendations || [
+            "Refocus the microscope to increase boundary sharpness",
+            "Improve illumination and contrast",
+            "Avoid glare and shadows",
+            "Use a higher-resolution image"
+        ];
+        recsElem.innerHTML = recs.map(r => `<li>${r}</li>`).join('');
+    } else {
+        interpNotesPanel.style.display = 'none';
+    }
+
+    // 2. Quality & Metrics Tables
+    document.getElementById('tbl-dims').innerText = `${dim.width || 0} × ${dim.height || 0} (${dim.channels || 3} ch)`;
+    document.getElementById('tbl-brightness').innerText = (q.brightness !== undefined) ? q.brightness : 0;
+    document.getElementById('tbl-contrast').innerText = (q.contrast !== undefined) ? q.contrast : 0;
+    document.getElementById('tbl-sharpness').innerText = (q.sharpness !== undefined) ? q.sharpness : 0;
+    document.getElementById('tbl-noise').innerText = (q.noise_estimate !== undefined) ? q.noise_estimate : 0;
+
+    const diag = data.contour_diagnostics || {};
+    document.getElementById('tbl-fov-coverage').innerText = (q.fov_coverage_pct !== undefined) ? `${q.fov_coverage_pct}% (${q.fov_area_px || 0} px)` : '--';
+    document.getElementById('tbl-contour-counts').innerText = (diag.accepted_contour_count !== undefined) ? `${diag.accepted_contour_count} accepted / ${diag.raw_contour_count || 0} raw (${diag.rejected_contour_count || 0} rejected)` : '--';
+    document.getElementById('tbl-rel-area').innerText = (diag.relative_candidate_area_pct !== undefined) ? `${diag.relative_candidate_area_pct}%` : '--';
+
+    const areaUnit = m.area_unit || calib.area_unit || 'px²';
+    const lenUnit = m.length_unit || calib.length_unit || 'px';
+    const areaVal = (m.mean_area !== undefined) ? m.mean_area : (m.mean_area_px || 0);
+    const perimVal = (m.mean_perimeter !== undefined) ? m.mean_perimeter : (m.mean_perimeter_px || 0);
+
+    document.getElementById('tbl-mean-area').innerText = `${areaVal} ${areaUnit}`;
+    document.getElementById('tbl-mean-perim').innerText = `${perimVal} ${lenUnit}`;
+    document.getElementById('tbl-mean-circ').innerText = (m.mean_circularity !== undefined) ? m.mean_circularity : 0;
+    document.getElementById('tbl-mean-aspect').innerText = (m.mean_aspect_ratio !== undefined) ? m.mean_aspect_ratio : 0;
+    document.getElementById('tbl-mean-solidity').innerText = (m.mean_solidity !== undefined) ? m.mean_solidity : 0;
+
+    // 3. Update Figures with cache-busting timestamp
+    const t = new Date().getTime();
+    document.getElementById('fig-original').src = `${figs.original}?t=${t}`;
+    document.getElementById('fig-grayscale').src = `${figs.grayscale}?t=${t}`;
+    document.getElementById('fig-binary').src = `${figs.binary}?t=${t}`;
+    document.getElementById('fig-contours').src = `${figs.contours}?t=${t}`;
+
+    // 4. Individual Cell Rows
+    const tbody = document.getElementById('cells-table-body');
+    tbody.innerHTML = '';
+    const cells = m.individual_cells || [];
+    if (cells.length > 0) {
+        cells.forEach(c => {
+            const displayArea = c.area_display || `${c.area} ${areaUnit}`;
+            const displayPerim = c.perimeter_display || `${c.perimeter} ${lenUnit}`;
+            tbody.innerHTML += `
+                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background='transparent'">
+                    <td style="padding: 0.6rem 0.5rem; font-weight: 700; color: #f59e0b;">#${c.cell_id}</td>
+                    <td style="padding: 0.6rem 0.5rem; color: #38bdf8; font-weight: 600;">${displayArea}</td>
+                    <td style="padding: 0.6rem 0.5rem; color: var(--text-secondary);">${displayPerim}</td>
+                    <td style="padding: 0.6rem 0.5rem; color: var(--text-secondary);">${c.circularity}</td>
+                    <td style="padding: 0.6rem 0.5rem; color: var(--text-secondary);">${c.aspect_ratio}</td>
+                    <td style="padding: 0.6rem 0.5rem; color: #10b981; font-weight: 600;">${c.solidity}</td>
+                </tr>`;
+        });
+    } else {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 1.5rem; color: var(--text-muted);">No individual cells segmented (0 contours detected)</td></tr>`;
+    }
+}
+</script>
+{% endblock %}

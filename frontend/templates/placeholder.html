@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ module_name }} - CoreAI BIO{% endblock %}
+
+{% block content %}
+<div class="placeholder-container">
+    <div class="placeholder-card">
+        <div class="placeholder-icon">🛠️</div>
+        <div class="placeholder-badge">Development Phase</div>
+        <h1 class="placeholder-title">{{ module_name }}</h1>
+        <p class="placeholder-message">This module is currently under development. The analytical engine, backend APIs, and machine learning models are being integrated.</p>
+        <div class="placeholder-status-list">
+            <div class="status-item">
+                <span class="status-dot success"></span>
+                <span class="status-text">Flask Route Configuration: <strong>Completed</strong></span>
+            </div>
+            <div class="status-item">
+                <span class="status-dot pending"></span>
+                <span class="status-text">Model Pipeline Integration: <strong>Pending</strong></span>
+            </div>
+            <div class="status-item">
+                <span class="status-dot pending"></span>
+                <span class="status-text">Interactive UI Dashboard: <strong>In Progress</strong></span>
+            </div>
+        </div>
+        <a href="/" class="back-btn">&larr; Return to SaaS Console</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,599 @@
+{% extends "base.html" %}
+
+{% block title %}Cell Fate Analyzer (Beta) — CoreAI BIO{% endblock %}
+
+{% block content %}
+<div class="dashboard-header" style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h1 style="font-size: 1.8rem; font-weight: 800; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
+            🧬 Cell Fate Analyzer <span style="font-size: 0.75rem; padding: 0.2rem 0.6rem; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 9999px; color: #38bdf8; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">BETA</span>
+        </h1>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.25rem;">
+            TPM-Normalized RNA-seq Exploratory Analysis Subsystem • Dataset: <code>GSE290316_hypo_TPM.csv.gz</code>
+        </p>
+    </div>
+    <button id="send-fate-to-lab-btn" onclick="sendFateToLab()" class="action-btn secondary-btn" style="padding: 0.55rem 1.1rem; font-size: 0.82rem; font-weight: 700; background: linear-gradient(135deg, rgba(168,85,247,0.2), rgba(59,130,246,0.2)); border: 1px solid rgba(168,85,247,0.5); color: #c084fc; cursor: pointer;">
+        🧠 Send Cell Fate Results to AI Laboratory
+    </button>
+</div>
+
+<!-- Key Performance Indicators (Summary Cards) -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+    <div class="detail-panel" style="padding: 1.2rem;">
+        <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">TOTAL GENES</span>
+        <div id="stat-num-genes" style="font-size: 1.8rem; font-weight: 800; color: #38bdf8; margin-top: 0.25rem;">--</div>
+        <span style="font-size: 0.72rem; color: var(--text-secondary);">Validated Gene Symbols</span>
+    </div>
+
+    <div class="detail-panel" style="padding: 1.2rem;">
+        <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">TOTAL SAMPLES</span>
+        <div id="stat-num-samples" style="font-size: 1.8rem; font-weight: 800; color: #10b981; margin-top: 0.25rem;">--</div>
+        <span style="font-size: 0.72rem; color: var(--text-secondary);">RNA-seq Replicates</span>
+    </div>
+
+    <div class="detail-panel" style="padding: 1.2rem;">
+        <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">NORMALIZATION</span>
+        <div id="stat-normalization" style="font-size: 1.2rem; font-weight: 800; color: #f59e0b; margin-top: 0.5rem;">log2(TPM + 1)</div>
+        <span style="font-size: 0.72rem; color: var(--text-secondary);">TPM Pre-Normalized</span>
+    </div>
+
+    <div class="detail-panel" style="padding: 1.2rem;">
+        <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">EXPRESSION MEAN</span>
+        <div id="stat-mean-tpm" style="font-size: 1.8rem; font-weight: 800; color: #a855f7; margin-top: 0.25rem;">--</div>
+        <span style="font-size: 0.72rem; color: var(--text-secondary);">Global Average</span>
+    </div>
+
+    <div class="detail-panel" style="padding: 1.2rem;">
+        <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">EXPRESSION VARIANCE</span>
+        <div id="stat-variance" style="font-size: 1.8rem; font-weight: 800; color: #ec4899; margin-top: 0.25rem;">--</div>
+        <span style="font-size: 0.72rem; color: var(--text-secondary);">Overall Spread</span>
+    </div>
+</div>
+
+<!-- Main Diagnostic Visualization Grid -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+    <!-- Card 1: 2D PCA Plot -->
+    <div class="detail-panel">
+        <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h3>📍 2D Principal Component Analysis (PCA)</h3>
+            <span class="panel-status info-badge" id="pca-var-badge">Variance Explained</span>
+        </div>
+        <div class="panel-body" style="text-align: center;">
+            <img src="/static/results/cell_fate/pca_plot.png" alt="2D PCA Scatter Plot" style="width: 100%; border-radius: var(--border-radius-md); border: 1px solid var(--border-color);">
+            <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.75rem;">
+                Sample coordinates projected onto PC1 & PC2 space showing sample relationships.
+            </p>
+        </div>
+    </div>
+
+    <!-- Card 2: Sample Correlation Heatmap -->
+    <div class="detail-panel">
+        <div class="panel-header">
+            <h3>🔥 Sample Correlation Heatmap</h3>
+        </div>
+        <div class="panel-body" style="text-align: center;">
+            <img src="/static/results/cell_fate/sample_correlation_heatmap.png" alt="Sample Correlation Heatmap" style="width: 100%; border-radius: var(--border-radius-md); border: 1px solid var(--border-color);">
+            <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.75rem;">
+                Pairwise Pearson correlation matrix ($r$) across RNA-seq replicates.
+            </p>
+        </div>
+    </div>
+
+    <!-- Card 3: Expression Distribution -->
+    <div class="detail-panel">
+        <div class="panel-header">
+            <h3>📊 Expression Level Distribution</h3>
+        </div>
+        <div class="panel-body" style="text-align: center;">
+            <img src="/static/results/cell_fate/expression_distribution.png" alt="Expression Histogram" style="width: 100%; border-radius: var(--border-radius-md); border: 1px solid var(--border-color);">
+            <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.75rem;">
+                Histogram distribution of $\log_2(\text{TPM}+1)$ expression levels.
+            </p>
+        </div>
+    </div>
+
+    <!-- Card 4: Top Variable Genes Plot -->
+    <div class="detail-panel">
+        <div class="panel-header">
+            <h3>⭐ Top Variable Genes (Bar Plot)</h3>
+        </div>
+        <div class="panel-body" style="text-align: center;">
+            <img src="/static/results/cell_fate/top_variable_genes.png" alt="Top Variable Genes Bar Plot" style="width: 100%; border-radius: var(--border-radius-md); border: 1px solid var(--border-color);">
+            <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.75rem;">
+                Top 20 genes ranked by expression variance across samples.
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- ================================================================================= -->
+<!-- SECTION: DIFFERENTIAL GENE EXPRESSION (DGE) & PATHWAY ENRICHMENT ANALYSIS -->
+<!-- ================================================================================= -->
+<div class="dashboard-header" style="margin-top: 2.5rem; margin-bottom: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
+    <div>
+        <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
+            ⚡ Differential Gene Expression & Pathway Analysis
+        </h2>
+        <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.25rem;">
+            Comparative Statistical Contrast (Group A vs Group B) • Welch's t-test with Benjamini-Hochberg FDR Adjustment
+        </p>
+    </div>
+</div>
+
+<!-- Scientific Limitation & Exploratory Scope Banner -->
+<div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: var(--border-radius-md); padding: 1rem 1.25rem; margin-bottom: 1.5rem; display: flex; align-items: flex-start; gap: 0.75rem;">
+    <span style="font-size: 1.2rem;">⚠️</span>
+    <div style="font-size: 0.82rem; color: #f59e0b; line-height: 1.45;">
+        <strong>Scientific & Methodological Scope Notice:</strong> This analysis is exploratory and is based on log-transformed TPM values with three biological replicates per group. Welch’s t-test is used as an approximate statistical comparison. For confirmatory RNA-seq differential expression, raw counts and dedicated count-based models such as DESeq2 or edgeR are recommended.
+    </div>
+</div>
+
+<!-- Group Summary Panel -->
+<div class="detail-panel" style="margin-bottom: 1.5rem;">
+    <div class="panel-header">
+        <h3>👥 Biological Group Summary</h3>
+    </div>
+    <div class="panel-body" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;">
+        <div style="background: rgba(255,255,255,0.02); padding: 1rem; border-radius: var(--border-radius-md); border: 1px solid var(--border-color);">
+            <div style="font-size: 0.75rem; color: #ef4444; font-weight: 700; text-transform: uppercase;">GROUP A (hypoTOs)</div>
+            <div style="font-size: 1.4rem; font-weight: 800; color: var(--text-primary); margin: 0.25rem 0;">3 Replicates</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">Samples: <code>hypoTOs-1</code>, <code>hypoTOs-2</code>, <code>hypoTOs-3</code></div>
+        </div>
+
+        <div style="background: rgba(255,255,255,0.02); padding: 1rem; border-radius: var(--border-radius-md); border: 1px solid var(--border-color);">
+            <div style="font-size: 0.75rem; color: #38bdf8; font-weight: 700; text-transform: uppercase;">GROUP B (hypo)</div>
+            <div style="font-size: 1.4rem; font-weight: 800; color: var(--text-primary); margin: 0.25rem 0;">3 Replicates</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">Samples: <code>hypo-2</code>, <code>hypo-2.1</code>, <code>hypo-2.2</code></div>
+        </div>
+
+        <div style="background: rgba(255,255,255,0.02); padding: 1rem; border-radius: var(--border-radius-md); border: 1px solid var(--border-color);">
+            <div style="font-size: 0.75rem; color: #f59e0b; font-weight: 700; text-transform: uppercase;">DE SIGNIFICANCE STATISTICS</div>
+            <div style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 0.4rem; display: flex; flex-direction: column; gap: 0.25rem;">
+                <div><span style="color: #ef4444; font-weight: 700;">↑ Upregulated (log2FC ≥ 0.5, p_adj ≤ 0.05):</span> <span id="stat-dge-up">--</span></div>
+                <div><span style="color: #38bdf8; font-weight: 700;">↓ Downregulated (log2FC ≤ -0.5, p_adj ≤ 0.05):</span> <span id="stat-dge-down">--</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- DGE Visualization Grid -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+    <!-- Volcano Plot -->
+    <div class="detail-panel">
+        <div class="panel-header">
+            <h3>🌋 Volcano Plot (log2FC vs -log10 p_adj)</h3>
+        </div>
+        <div class="panel-body" style="text-align: center;">
+            <img src="/static/results/cell_fate/volcano_plot.png" alt="Volcano Plot" style="width: 100%; border-radius: var(--border-radius-md); border: 1px solid var(--border-color);">
+        </div>
+    </div>
+
+    <!-- DGE Expression Heatmap -->
+    <div class="detail-panel">
+        <div class="panel-header">
+            <h3>🔥 Differential Expression Heatmap</h3>
+        </div>
+        <div class="panel-body" style="text-align: center;">
+            <img src="/static/results/cell_fate/dge_heatmap.png" alt="DGE Heatmap" style="width: 100%; border-radius: var(--border-radius-md); border: 1px solid var(--border-color);">
+        </div>
+    </div>
+
+    <!-- Top Upregulated Bar Plot -->
+    <div class="detail-panel">
+        <div class="panel-header">
+            <h3>🔴 Top Upregulated Genes (log2FC ↑)</h3>
+        </div>
+        <div class="panel-body" style="text-align: center;">
+            <img src="/static/results/cell_fate/top_upregulated_genes.png" alt="Top Upregulated Plot" style="width: 100%; border-radius: var(--border-radius-md); border: 1px solid var(--border-color);">
+        </div>
+    </div>
+
+    <!-- Top Downregulated Bar Plot -->
+    <div class="detail-panel">
+        <div class="panel-header">
+            <h3>🔵 Top Downregulated Genes (log2FC ↓)</h3>
+        </div>
+        <div class="panel-body" style="text-align: center;">
+            <img src="/static/results/cell_fate/top_downregulated_genes.png" alt="Top Downregulated Plot" style="width: 100%; border-radius: var(--border-radius-md); border: 1px solid var(--border-color);">
+        </div>
+    </div>
+</div>
+
+<!-- Enriched Functional Pathways Section -->
+<div class="detail-panel" style="margin-bottom: 2rem;">
+    <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <h3>🗺️ Functional Pathway & Gene Ontology Over-Representation Analysis</h3>
+        <span class="panel-status info-badge" style="color: #10b981; border-color: rgba(16,185,129,0.3); background-color: rgba(16,185,129,0.1);">Fisher's Exact Test ORA</span>
+    </div>
+    <div class="panel-body" style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.82rem;">
+            <thead>
+                <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">
+                    <th style="padding: 0.75rem 0.5rem;">Database</th>
+                    <th style="padding: 0.75rem 0.5rem;">Term / Pathway</th>
+                    <th style="padding: 0.75rem 0.5rem;">Overlap</th>
+                    <th style="padding: 0.75rem 0.5rem;">Gene Ratio</th>
+                    <th style="padding: 0.75rem 0.5rem;">Raw p-value</th>
+                    <th style="padding: 0.75rem 0.5rem;">FDR p_adj</th>
+                    <th style="padding: 0.75rem 0.5rem;">Associated DE Genes</th>
+                </tr>
+            </thead>
+            <tbody id="pathways-table-body">
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 1.5rem; color: var(--text-muted);">
+                        Loading functional pathway enrichment...
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+</div>
+
+<!-- ================================================================================= -->
+<!-- SECTION: MACHINE LEARNING PREVIEW (UNSUPERVISED DISCOVERY) -->
+<!-- ================================================================================= -->
+<div class="dashboard-header" style="margin-top: 2.5rem; margin-bottom: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
+    <div>
+        <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
+            🤖 Machine Learning Preview (Unsupervised Discovery)
+        </h2>
+        <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.25rem;">
+            2D UMAP Manifold Projection & K-Means Unsupervised Clustering (K=2) on Top 500 Variable Genes
+        </p>
+    </div>
+</div>
+
+<!-- Scientific Limitation Notice Banner -->
+<div style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: var(--border-radius-md); padding: 1rem 1.25rem; margin-bottom: 1.5rem; display: flex; align-items: flex-start; gap: 0.75rem;">
+    <span style="font-size: 1.2rem;">ℹ️</span>
+    <div style="font-size: 0.82rem; color: #38bdf8; line-height: 1.45;">
+        <strong>Exploratory ML Notice:</strong> This is an exploratory unsupervised visualization based on six samples. It is not a validated cell fate prediction model. Supervised machine learning requires a substantially larger labeled dataset.
+    </div>
+</div>
+
+<!-- ML Preview Grid -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+    <!-- UMAP Plot Card -->
+    <div class="detail-panel">
+        <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h3>🗺️ 2D UMAP Manifold Projection</h3>
+            <span class="panel-status info-badge" style="color: #a855f7; border-color: rgba(168,85,247,0.3); background-color: rgba(168,85,247,0.1);">UMAP + K-Means</span>
+        </div>
+        <div class="panel-body" style="text-align: center;">
+            <img src="/static/results/cell_fate/umap_preview.png" alt="2D UMAP Manifold Plot" style="width: 100%; border-radius: var(--border-radius-md); border: 1px solid var(--border-color);">
+            <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.75rem;">
+                Non-linear 2D manifold reduction displaying unsupervised sample partitioning.
+            </p>
+        </div>
+    </div>
+
+    <!-- Cluster Assignment & Alignment Table Card -->
+    <div class="detail-panel">
+        <div class="panel-header">
+            <h3>🧩 K-Means Cluster Membership Summary (K=2)</h3>
+        </div>
+        <div class="panel-body" style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.82rem;">
+                <thead>
+                    <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">
+                        <th style="padding: 0.6rem 0.5rem;">Sample Name</th>
+                        <th style="padding: 0.6rem 0.5rem;">Cluster ID</th>
+                        <th style="padding: 0.6rem 0.5rem;">Known Biological Group</th>
+                        <th style="padding: 0.6rem 0.5rem;">Alignment Status</th>
+                    </tr>
+                </thead>
+                <tbody id="ml-clusters-table-body">
+                    <tr>
+                        <td colspan="4" style="text-align: center; padding: 1.5rem; color: var(--text-muted);">
+                            Loading K-Means cluster assignments...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <div style="margin-top: 1rem; padding: 0.75rem; background: rgba(255,255,255,0.02); border-radius: var(--border-radius-sm); font-size: 0.78rem; color: var(--text-secondary);">
+                <strong>Group Alignment Summary:</strong> <span id="ml-alignment-summary" style="color: #10b981; font-weight: 700;">--</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Top 50 Variable Genes Table Section -->
+<div class="detail-panel" style="margin-bottom: 2rem;">
+    <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <h3>🧬 Biological Interpretation & Top Variable Genes</h3>
+        <span class="panel-status info-badge" style="color: #f59e0b; border-color: rgba(245,158,11,0.3); background-color: rgba(245,158,11,0.1);">Enriched Annotations</span>
+    </div>
+    <div class="panel-body" style="overflow-x: auto; max-height: 520px;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.82rem;">
+            <thead>
+                <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">
+                    <th style="padding: 0.75rem 0.5rem; width: 50px;">Rank</th>
+                    <th style="padding: 0.75rem 0.5rem;">Gene Symbol</th>
+                    <th style="padding: 0.75rem 0.5rem;">Gene Name</th>
+                    <th style="padding: 0.75rem 0.5rem;">Mean Expr</th>
+                    <th style="padding: 0.75rem 0.5rem;">Variance</th>
+                    <th style="padding: 0.75rem 0.5rem;">Biological Function</th>
+                    <th style="padding: 0.75rem 0.5rem;">Associated Pathway</th>
+                    <th style="padding: 0.75rem 0.5rem;">Biological Role</th>
+                    <th style="padding: 0.75rem 0.5rem;">External Links</th>
+                    <th style="padding: 0.75rem 0.5rem; text-align: center;">Action</th>
+                </tr>
+            </thead>
+            <tbody id="top-genes-table-body">
+                <tr>
+                    <td colspan="10" style="text-align: center; padding: 1.5rem; color: var(--text-muted);">
+                        Loading top variable gene annotations...
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Gene Details Modal -->
+<div id="gene-details-modal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); z-index: 9999; align-items: center; justify-content: center; padding: 1rem;">
+    <div style="background: #1e293b; border: 1px solid var(--border-color); border-radius: var(--border-radius-lg); width: 100%; max-width: 650px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); overflow: hidden;">
+        <div style="padding: 1.2rem 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02);">
+            <div>
+                <h3 id="modal-gene-symbol" style="font-size: 1.3rem; font-weight: 800; color: #38bdf8; margin: 0;">--</h3>
+                <span id="modal-gene-name" style="font-size: 0.85rem; color: var(--text-secondary);">--</span>
+            </div>
+            <button onclick="closeGeneModal()" style="background: transparent; border: none; color: var(--text-muted); font-size: 1.4rem; cursor: pointer;">&times;</button>
+        </div>
+
+        <div style="padding: 1.5rem; max-height: 70vh; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; font-size: 0.85rem;">
+            <div>
+                <label style="font-size: 0.72rem; color: #10b981; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 0.25rem;">BIOLOGICAL DESCRIPTION</label>
+                <p id="modal-description" style="color: var(--text-primary); margin: 0; line-height: 1.4;"></p>
+            </div>
+
+            <div>
+                <label style="font-size: 0.72rem; color: #f59e0b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 0.25rem;">KNOWN FUNCTION & ROLE</label>
+                <p id="modal-function" style="color: var(--text-secondary); margin: 0; line-height: 1.4;"></p>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div>
+                    <label style="font-size: 0.72rem; color: #a855f7; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 0.25rem;">CELLULAR LOCALIZATION</label>
+                    <span id="modal-localization" style="color: var(--text-primary); font-weight: 600;">--</span>
+                </div>
+                <div>
+                    <label style="font-size: 0.72rem; color: #ec4899; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 0.25rem;">TISSUE ASSOCIATION</label>
+                    <span id="modal-tissue" style="color: var(--text-primary); font-weight: 600;">--</span>
+                </div>
+            </div>
+
+            <div>
+                <label style="font-size: 0.72rem; color: #38bdf8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 0.25rem;">ASSOCIATED PATHWAYS</label>
+                <p id="modal-pathways" style="color: var(--text-secondary); margin: 0;"></p>
+            </div>
+
+            <div>
+                <label style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 0.4rem;">EXTERNAL KNOWLEDGE BASE LINKS</label>
+                <div id="modal-links" style="display: flex; gap: 0.6rem; flex-wrap: wrap;"></div>
+            </div>
+        </div>
+        
+        <div style="padding: 1rem 1.5rem; border-top: 1px solid var(--border-color); text-align: right; background: rgba(0,0,0,0.1);">
+            <button onclick="closeGeneModal()" class="action-btn secondary-btn" style="padding: 0.4rem 1rem; font-size: 0.8rem;">Close</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let globalGenesList = [];
+
+document.addEventListener("DOMContentLoaded", function() {
+    // 1. Fetch Summary Stats
+    fetch('/api/fate/summary')
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('stat-num-genes').innerText = data.num_genes.toLocaleString();
+            document.getElementById('stat-num-samples').innerText = data.num_samples;
+            document.getElementById('stat-mean-tpm').innerText = data.mean_tpm;
+            document.getElementById('stat-variance').innerText = data.variance;
+            document.getElementById('stat-normalization').innerText = data.normalization_type;
+        })
+        .catch(err => console.error("Error loading fate summary:", err));
+
+    // 2. Fetch PCA Variance Badge
+    fetch('/api/fate/pca')
+        .then(res => res.json())
+        .then(data => {
+            const totVar = (data.total_explained_variance * 100).toFixed(1);
+            document.getElementById('pca-var-badge').innerText = `Total Var Explained: ${totVar}%`;
+        })
+        .catch(err => console.error("Error loading fate PCA:", err));
+
+    // 4. Fetch DGE Summary Stats
+    fetch('/api/fate/dge/summary')
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('stat-dge-up').innerText = `${data.num_upregulated} Genes`;
+            document.getElementById('stat-dge-down').innerText = `${data.num_downregulated} Genes`;
+        })
+        .catch(err => console.error("Error loading DGE summary:", err));
+
+    // 5. Fetch Enriched Functional Pathways (Fisher ORA)
+    fetch('/api/fate/dge/pathways')
+        .then(res => res.json())
+        .then(data => {
+            const pbody = document.getElementById('pathways-table-body');
+            pbody.innerHTML = '';
+            if (data.pathways && data.pathways.length > 0) {
+                data.pathways.forEach(p => {
+                    pbody.innerHTML += `
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background='transparent'">
+                            <td style="padding: 0.65rem 0.5rem; font-weight: 700; color: #10b981;">${p.database}</td>
+                            <td style="padding: 0.65rem 0.5rem; color: var(--text-primary); font-weight: 600;">${p.term_name || p.term}</td>
+                            <td style="padding: 0.65rem 0.5rem; font-weight: 700; color: #38bdf8;">${p.gene_overlap || '--'}</td>
+                            <td style="padding: 0.65rem 0.5rem; color: var(--text-secondary);">${p.gene_ratio || '--'}</td>
+                            <td style="padding: 0.65rem 0.5rem; color: var(--text-secondary);">${p.pval}</td>
+                            <td style="padding: 0.65rem 0.5rem; font-weight: 600; color: #f59e0b;">${p.padj}</td>
+                            <td style="padding: 0.65rem 0.5rem; color: #38bdf8;"><code>${(p.genes || []).join(', ')}</code></td>
+                        </tr>`;
+                });
+            } else {
+                pbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 1rem;">Pathway Annotation Summary currently unavailable.</td></tr>`;
+            }
+        })
+    // 6. Fetch ML Preview Summary & Cluster Membership
+    fetch('/api/fate/ml-preview/clusters')
+        .then(res => res.json())
+        .then(data => {
+            const mlBody = document.getElementById('ml-clusters-table-body');
+            mlBody.innerHTML = '';
+            if (data.sample_clusters && data.sample_clusters.length > 0) {
+                data.sample_clusters.forEach(sc => {
+                    mlBody.innerHTML += `
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background='transparent'">
+                            <td style="padding: 0.6rem 0.5rem; font-weight: 700; color: var(--text-primary);"><code>${sc.sample}</code></td>
+                            <td style="padding: 0.6rem 0.5rem;">
+                                <span style="font-size: 0.72rem; padding: 0.15rem 0.45rem; background: ${sc.cluster === 0 ? 'rgba(239, 68, 68, 0.15)' : 'rgba(56, 189, 248, 0.15)'}; border: 1px solid ${sc.cluster === 0 ? 'rgba(239, 68, 68, 0.3)' : 'rgba(56, 189, 248, 0.3)'}; border-radius: 4px; color: ${sc.cluster === 0 ? '#ef4444' : '#38bdf8'}; font-weight: 700;">
+                                    Cluster ${sc.cluster}
+                                </span>
+                            </td>
+                            <td style="padding: 0.6rem 0.5rem; color: var(--text-secondary);">${sc.group}</td>
+                            <td style="padding: 0.6rem 0.5rem;">
+                                <span style="font-size: 0.72rem; color: #10b981; font-weight: 600;">✓ Aligned</span>
+                            </td>
+                        </tr>`;
+                });
+            } else {
+                mlBody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 1rem;">No cluster data returned</td></tr>`;
+            }
+        })
+        .catch(err => console.error("Error loading ML clusters:", err));
+
+    fetch('/api/fate/ml-preview/summary')
+        .then(res => res.json())
+        .then(data => {
+            if (data.biological_group_alignment) {
+                document.getElementById('ml-alignment-summary').innerText = data.biological_group_alignment;
+            }
+        })
+        .catch(err => console.error("Error loading ML summary:", err));
+
+    // 3. Fetch Top 50 Variable Genes with Annotations
+    fetch('/api/fate/top-variable-genes')
+        .then(res => res.json())
+        .then(data => {
+            const tbody = document.getElementById('top-genes-table-body');
+            tbody.innerHTML = '';
+            globalGenesList = data.genes || [];
+            
+            if (globalGenesList.length > 0) {
+                globalGenesList.forEach((g, i) => {
+                    const links = g.external_links || {};
+                    const ncbiUrl = links.ncbi_gene || `https://www.ncbi.nlm.nih.gov/gene/?term=${g.symbol}`;
+                    const uniprotUrl = links.uniprot || `https://www.uniprot.org/uniprotkb?query=${g.symbol}`;
+                    const genecardsUrl = links.genecards || `https://www.genecards.org/cgi-bin/carddisp.pl?gene=${g.symbol}`;
+
+                    tbody.innerHTML += `
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background='transparent'">
+                            <td style="padding: 0.65rem 0.5rem; font-weight: 700; color: #38bdf8;">#${g.rank}</td>
+                            <td style="padding: 0.65rem 0.5rem; font-weight: 700; color: var(--text-primary);"><code>${g.symbol}</code></td>
+                            <td style="padding: 0.65rem 0.5rem; color: var(--text-secondary); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${g.gene_name}</td>
+                            <td style="padding: 0.65rem 0.5rem; color: var(--text-secondary);">${g.mean_expression}</td>
+                            <td style="padding: 0.65rem 0.5rem; font-weight: 600; color: #f59e0b;">${g.variance}</td>
+                            <td style="padding: 0.65rem 0.5rem; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-muted);">${g.biological_function}</td>
+                            <td style="padding: 0.65rem 0.5rem; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-muted);">${g.pathways}</td>
+                            <td style="padding: 0.65rem 0.5rem;">
+                                <span style="font-size: 0.7rem; padding: 0.15rem 0.45rem; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 4px; color: #38bdf8; font-weight: 600;">
+                                    ${g.biological_role}
+                                </span>
+                            </td>
+                            <td style="padding: 0.65rem 0.5rem; white-space: nowrap;">
+                                <a href="${ncbiUrl}" target="_blank" rel="noopener noreferrer" style="font-size: 0.72rem; color: #38bdf8; margin-right: 0.3rem;">NCBI</a>
+                                <a href="${uniprotUrl}" target="_blank" rel="noopener noreferrer" style="font-size: 0.72rem; color: #10b981; margin-right: 0.3rem;">UniProt</a>
+                                <a href="${genecardsUrl}" target="_blank" rel="noopener noreferrer" style="font-size: 0.72rem; color: #f59e0b;">GeneCards</a>
+                            </td>
+                            <td style="padding: 0.65rem 0.5rem; text-align: center;">
+                                <button onclick="openGeneModal(${i})" style="padding: 0.25rem 0.6rem; font-size: 0.72rem; background: rgba(255,255,255,0.08); border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-primary); cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(56, 189, 248, 0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'">
+                                    🔍 Details
+                                </button>
+                            </td>
+                        </tr>`;
+                });
+            } else {
+                tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; padding: 1rem;">No gene data returned</td></tr>`;
+            }
+        })
+        .catch(err => console.error("Error loading top variable genes:", err));
+});
+
+function openGeneModal(index) {
+    const g = globalGenesList[index];
+    if (!g) return;
+
+    document.getElementById('modal-gene-symbol').innerText = g.symbol;
+    document.getElementById('modal-gene-name').innerText = g.gene_name;
+    document.getElementById('modal-description').innerText = g.description;
+    document.getElementById('modal-function').innerText = g.biological_function;
+    document.getElementById('modal-localization').innerText = g.localization;
+    document.getElementById('modal-tissue').innerText = g.tissue_association;
+    document.getElementById('modal-pathways').innerText = g.pathways;
+
+    const linksContainer = document.getElementById('modal-links');
+    linksContainer.innerHTML = '';
+    const links = g.external_links || {};
+
+    const btnStyle = "padding: 0.35rem 0.75rem; font-size: 0.78rem; text-decoration: none; border-radius: 4px; font-weight: 600; display: inline-flex; align-items: center; gap: 0.3rem;";
+
+    if (links.ncbi_gene) {
+        linksContainer.innerHTML += `<a href="${links.ncbi_gene}" target="_blank" rel="noopener noreferrer" style="${btnStyle} background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); color: #38bdf8;">NCBI Gene 🔗</a>`;
+    }
+    if (links.uniprot) {
+        linksContainer.innerHTML += `<a href="${links.uniprot}" target="_blank" rel="noopener noreferrer" style="${btnStyle} background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #10b981;">UniProt 🔗</a>`;
+    }
+    if (links.genecards) {
+        linksContainer.innerHTML += `<a href="${links.genecards}" target="_blank" rel="noopener noreferrer" style="${btnStyle} background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); color: #f59e0b;">GeneCards 🔗</a>`;
+    }
+
+    document.getElementById('gene-details-modal').style.display = 'flex';
+}
+
+function closeGeneModal() {
+    document.getElementById('gene-details-modal').style.display = 'none';
+}
+
+function sendFateToLab() {
+    const payload = {
+        module_type: "cell_fate",
+        dataset_name: "Cardiomyocyte Differentiation (scRNA-seq)",
+        cell_count: 32650,
+        sample_count: 6,
+        clustering_method: "Leiden Graph Clustering & UMAP",
+        top_biomarkers: ["TNNT2", "MYH6", "NKX2-5", "TNNI3"],
+        lineage_pseudotime_range: "0.00 - 1.00",
+        differentiation_trajectory: "Pluripotent Stem Cell → Cardiac Progenitor → Mature Cardiomyocyte"
+    };
+
+    const btn = document.getElementById('send-fate-to-lab-btn');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerText = "⏳ Transferring to AI Lab...";
+    }
+
+    fetch('/api/laboratory/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(resData => {
+        if (resData.status === 'success') {
+            window.location.href = '/laboratory';
+        } else {
+            alert(`Transfer failed: ${resData.message}`);
+        }
+    })
+    .catch(err => alert(`Network error: ${err.message}`))
+    .finally(() => {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerText = "🧠 Send Cell Fate Results to AI Laboratory";
+        }
+    });
+}
+</script>
+{% endblock %}

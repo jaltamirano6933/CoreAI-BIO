@@ -1,0 +1,685 @@
+{% extends 'base.html' %}
+
+{% block title %}Culture Optimizer - CoreAI BIO{% endblock %}
+
+{% block content %}
+<div class="dashboard-header-row" style="margin-bottom: 1.5rem;">
+    <div>
+        <a href="/" class="back-link">&larr; Back to SaaS Console</a>
+        <h1 class="dashboard-title" style="margin-top: 0.25rem;">
+            🌱 Research Culture <span class="text-glow">Optimizer</span>
+        </h1>
+        <p class="dashboard-subtitle">Stem Cell Culture Monitoring, Environmental Quality Diagnostics & Deterministic Rule-Based Recommendations</p>
+    </div>
+</div>
+
+<!-- Scientific & Laboratory Protocol Limitation Notice -->
+<div style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: var(--border-radius-md); padding: 1rem 1.25rem; margin-bottom: 1.5rem; display: flex; align-items: flex-start; gap: 0.75rem;">
+    <span style="font-size: 1.2rem;">ℹ️</span>
+    <div style="font-size: 0.82rem; color: #38bdf8; line-height: 1.45;">
+        <strong>Research Guidance Notice:</strong> This module provides research-oriented culture monitoring recommendations and is not intended to replace laboratory protocols or expert judgment.
+    </div>
+</div>
+
+<!-- Input Source Selector Card -->
+<div style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--border-color); border-radius: var(--border-radius-md); padding: 1rem 1.25rem; margin-bottom: 1.5rem; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem;">
+    <div style="display: flex; align-items: center; gap: 1.25rem; flex-wrap: wrap;">
+        <span style="font-weight: 700; color: var(--text-primary); font-size: 0.88rem;">
+            🎛️ Culture Data Source:
+        </span>
+        <label style="display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: #38bdf8; font-weight: 600; cursor: pointer;">
+            <input type="radio" name="source_mode" value="example" checked onchange="handleSourceModeChange(this.value)">
+            Example Culture (Default)
+        </label>
+        <label style="display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: #f59e0b; font-weight: 600; cursor: pointer;">
+            <input type="radio" name="source_mode" value="manual" onchange="handleSourceModeChange(this.value)">
+            Manual Entry
+        </label>
+    </div>
+    
+    <div style="display: flex; align-items: center; gap: 1rem;">
+        <span id="provenance-source-tag" style="font-size: 0.78rem; padding: 0.25rem 0.65rem; background: rgba(56,189,248,0.12); border: 1px solid rgba(56,189,248,0.3); border-radius: 4px; color: #38bdf8; font-weight: 700;">
+            Source: Example Demonstration Dataset
+        </span>
+        <span id="provenance-timestamp" style="font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono);">
+            Timestamp: Live
+        </span>
+        <button id="send-culture-to-lab-btn" onclick="sendCultureToLab()" class="action-btn secondary-btn" style="padding: 0.5rem 1rem; font-size: 0.8rem; font-weight: 700; background: linear-gradient(135deg, rgba(168,85,247,0.2), rgba(59,130,246,0.2)); border: 1px solid rgba(168,85,247,0.5); color: #c084fc; cursor: pointer; margin-left: auto;">
+            🧠 Send Culture Results to AI Laboratory
+        </button>
+    </div>
+</div>
+
+<!-- Summary KPI Grid (4 Cards) -->
+<div class="stats-grid" style="margin-bottom: 2rem;">
+    <!-- Culture Score -->
+    <div class="stat-card">
+        <div class="stat-icon fair-green">🌟</div>
+        <div class="stat-content">
+            <span class="stat-label">CULTURE SCORE</span>
+            <span id="opt-culture-score" class="stat-value" style="font-size: 1.5rem; color: #10b981;">88 / 100</span>
+            <span id="opt-culture-score-badge" class="stat-change text-success">Optimal Health</span>
+        </div>
+    </div>
+    <!-- Growth Status -->
+    <div class="stat-card">
+        <div class="stat-icon sindex-blue">📈</div>
+        <div class="stat-content">
+            <span class="stat-label">GROWTH STATUS</span>
+            <span id="opt-growth-status" class="stat-value" style="font-size: 1.1rem; color: #38bdf8;">Exponential Growth</span>
+            <span id="opt-growth-status-badge" class="stat-change text-success">Log Phase</span>
+        </div>
+    </div>
+    <!-- Risk Level -->
+    <div class="stat-card">
+        <div class="stat-icon sindex-purple">🛡️</div>
+        <div class="stat-content">
+            <span class="stat-label">RISK LEVEL</span>
+            <span id="opt-risk-level" class="stat-value" style="font-size: 1.3rem; color: #10b981;">Low Risk</span>
+            <span id="opt-risk-level-badge" class="stat-change text-success">Stable Environment</span>
+        </div>
+    </div>
+    <!-- Confluency -->
+    <div class="stat-card">
+        <div class="stat-icon fate-orange">🧫</div>
+        <div class="stat-content">
+            <span class="stat-label">CONFLUENCY</span>
+            <span id="opt-confluency" class="stat-value" style="font-size: 1.4rem; color: var(--accent-orange);">85.0%</span>
+            <span id="opt-confluency-badge" class="stat-change text-warning">Passage Approaching</span>
+        </div>
+    </div>
+</div>
+
+<!-- Culture Metrics Table & Recommendation Engine Panel (2 Columns) -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+    <!-- Column 1: Live Culture Metrics Table / Manual Entry -->
+    <div class="detail-panel">
+        <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h3>📊 Culture Monitoring Metrics</h3>
+            <span id="metrics-panel-badge" class="panel-status info-badge" style="color: #10b981; border-color: rgba(16,185,129,0.3); background-color: rgba(16,185,129,0.1);">Live Telemetry</span>
+        </div>
+        <div class="panel-body">
+            <!-- Read-only View Mode (Example Culture) -->
+            <div id="example-view-mode">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.83rem;">
+                    <tbody>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                            <td style="padding: 0.65rem 0; color: var(--text-muted);">Culture Status</td>
+                            <td id="m-status" style="padding: 0.65rem 0; font-weight: 700; color: #10b981; text-align: right;">Near Confluent</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                            <td style="padding: 0.65rem 0; color: var(--text-muted);">Cell Density</td>
+                            <td id="m-density" style="padding: 0.65rem 0; font-weight: 600; color: #38bdf8; text-align: right;">1.25 x 10⁵ cells/cm²</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                            <td style="padding: 0.65rem 0; color: var(--text-muted);">Confluency (%)</td>
+                            <td id="m-confluency" style="padding: 0.65rem 0; font-weight: 700; color: #f59e0b; text-align: right;">85.0%</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                            <td style="padding: 0.65rem 0; color: var(--text-muted);">Passage Number</td>
+                            <td id="m-passage" style="padding: 0.65rem 0; font-weight: 600; color: var(--text-secondary); text-align: right;">P4</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                            <td style="padding: 0.65rem 0; color: var(--text-muted);">Incubator Temperature</td>
+                            <td id="m-temp" style="padding: 0.65rem 0; font-weight: 600; color: var(--text-secondary); text-align: right;">37.0 °C</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                            <td style="padding: 0.65rem 0; color: var(--text-muted);">CO₂ Concentration</td>
+                            <td id="m-co2" style="padding: 0.65rem 0; font-weight: 600; color: var(--text-secondary); text-align: right;">5.0 %</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                            <td style="padding: 0.65rem 0; color: var(--text-muted);">Relative Humidity</td>
+                            <td id="m-humidity" style="padding: 0.65rem 0; font-weight: 600; color: var(--text-secondary); text-align: right;">95.0 %</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 0.65rem 0; color: var(--text-muted);">Culture Age</td>
+                            <td id="m-age" style="padding: 0.65rem 0; font-weight: 600; color: var(--text-secondary); text-align: right;">4 Days</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Manual Editable Form (Manual Entry Mode) -->
+            <div id="manual-edit-mode" style="display: none;">
+                <form id="manual-culture-form" onsubmit="submitManualAnalysis(event)">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; font-size: 0.8rem; margin-bottom: 1rem;">
+                        <div>
+                            <label style="color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Cell Density (x10⁵ cells/cm²)</label>
+                            <input type="number" step="0.01" min="0.01" max="50.0" id="in-density" value="1.25" required class="culture-input">
+                        </div>
+                        <div>
+                            <label style="color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Confluency (%)</label>
+                            <input type="number" step="0.1" min="1.0" max="100.0" id="in-confluency" value="78.5" required class="culture-input">
+                        </div>
+                        <div>
+                            <label style="color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Passage Number</label>
+                            <input type="number" step="1" min="1" max="50" id="in-passage" value="4" required class="culture-input">
+                        </div>
+                        <div>
+                            <label style="color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Incubator Temp (°C)</label>
+                            <input type="number" step="0.1" min="20.0" max="45.0" id="in-temp" value="37.0" required class="culture-input">
+                        </div>
+                        <div>
+                            <label style="color: var(--text-muted); display: block; margin-bottom: 0.25rem;">CO₂ Concentration (%)</label>
+                            <input type="number" step="0.1" min="0.0" max="20.0" id="in-co2" value="5.0" required class="culture-input">
+                        </div>
+                        <div>
+                            <label style="color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Relative Humidity (%)</label>
+                            <input type="number" step="0.1" min="10.0" max="100.0" id="in-humidity" value="95.0" required class="culture-input">
+                        </div>
+                        <div style="grid-column: span 2;">
+                            <label style="color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Culture Age (Days)</label>
+                            <input type="number" step="0.1" min="0.1" max="30.0" id="in-age" value="2.0" required class="culture-input">
+                        </div>
+                    </div>
+
+                    <button type="submit" id="analyze-culture-btn" class="action-btn primary-btn" style="width: 100%; padding: 0.65rem; font-weight: 700; font-size: 0.85rem;">
+                        🚀 Analyze Culture
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Column 2: Deterministic Rule-Based Recommendations Engine -->
+    <div class="detail-panel">
+        <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h3>💡 Rule-Based Actionable Recommendations</h3>
+            <span class="panel-status info-badge" style="color: #f59e0b; border-color: rgba(245,158,11,0.3); background-color: rgba(245,158,11,0.1);">Deterministic Rules</span>
+        </div>
+        <div class="panel-body">
+            <div id="recommendations-container" style="display: flex; flex-direction: column; gap: 0.85rem;">
+                <div style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Loading recommendations...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Data Visualization Trend Charts Grid (3 Cards) -->
+<div class="detail-panel" style="margin-bottom: 2.5rem;">
+    <div class="panel-header">
+        <h3>📈 Culture Growth & Health Trends Over Time</h3>
+    </div>
+    <div class="panel-body" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem; text-align: center;">
+        <div>
+            <img src="/static/results/culture_optimizer/density_over_time.png" alt="Cell Density Over Time" style="width: 100%; border-radius: var(--border-radius-md); border: 1px solid var(--border-color);">
+            <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.5rem;">Cell Density Trend (x10⁵ cells/cm²)</p>
+        </div>
+        <div>
+            <img src="/static/results/culture_optimizer/confluency_over_time.png" alt="Confluency Over Time" style="width: 100%; border-radius: var(--border-radius-md); border: 1px solid var(--border-color);">
+            <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.5rem;">Confluency Trend (%)</p>
+        </div>
+        <div>
+            <img src="/static/results/culture_optimizer/culture_score_trend.png" alt="Culture Score Trend" style="width: 100%; border-radius: var(--border-radius-md); border: 1px solid var(--border-color);">
+            <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.5rem;">Overall Culture Score Trend (0-100)</p>
+        </div>
+    </div>
+</div>
+
+<!-- Formulation Yield Predictor Section (Preserved Phase 4 Model) -->
+<div style="border-top: 1px solid var(--border-color); padding-top: 2rem; margin-bottom: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+        <h2 style="font-size: 1.3rem; font-weight: 800; color: var(--text-primary); margin: 0;">
+            ⚗️ Media Formulation Biomass Predictor & SHAP Explainability Engine
+        </h2>
+        <span style="font-size: 0.75rem; padding: 0.25rem 0.6rem; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3); border-radius: 4px; color: #3b82f6; font-weight: 600;">
+            RandomForestRegressor
+        </span>
+    </div>
+
+    <!-- Main Layout: Left Form (Components) & Right Prediction Output -->
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem;">
+        <!-- Left Column: Component Form -->
+        <div class="table-section no-margin" style="padding: 1.5rem; background-color: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--border-radius-lg);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border-color);">
+                <h3 style="margin: 0; font-family: var(--font-heading); color: var(--text-primary); font-size: 1rem;">
+                    Culture Medium Formulation Inputs (29 Components)
+                </h3>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button type="button" onclick="loadPreset('baseline')" class="action-btn" style="font-size: 0.75rem; padding: 0.35rem 0.75rem; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3); color: #3b82f6;">
+                        Load Baseline
+                    </button>
+                    <button type="button" onclick="loadPreset('high_serum')" class="action-btn" style="font-size: 0.75rem; padding: 0.35rem 0.75rem; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); color: #10b981;">
+                        High Serum
+                    </button>
+                </div>
+            </div>
+
+            <form id="culture-form" onsubmit="submitPrediction(event)">
+                <!-- Group 1: Amino Acids -->
+                <div style="margin-bottom: 1.5rem;">
+                    <h4 style="font-size: 0.82rem; color: var(--accent-orange); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem;">
+                        1. Amino Acids (13 Components)
+                    </h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 0.75rem;">
+                        <div class="input-group"><label>Arginine</label><input type="number" step="any" id="feat-Arginine" value="0.6" required class="culture-input"></div>
+                        <div class="input-group"><label>Glutamine</label><input type="number" step="any" id="feat-Glutamine" value="2.0" required class="culture-input"></div>
+                        <div class="input-group"><label>Histidine</label><input type="number" step="any" id="feat-Histidine" value="0.2" required class="culture-input"></div>
+                        <div class="input-group"><label>Isoleucine</label><input type="number" step="any" id="feat-Isoleucine" value="0.4" required class="culture-input"></div>
+                        <div class="input-group"><label>Leucine</label><input type="number" step="any" id="feat-Leucine" value="0.4" required class="culture-input"></div>
+                        <div class="input-group"><label>Lysine</label><input type="number" step="any" id="feat-Lysine" value="0.4" required class="culture-input"></div>
+                        <div class="input-group"><label>Methionine</label><input type="number" step="any" id="feat-Methionine" value="0.1" required class="culture-input"></div>
+                        <div class="input-group"><label>Phenylalanine</label><input type="number" step="any" id="feat-Phenylalanine" value="0.2" required class="culture-input"></div>
+                        <div class="input-group"><label>Threonine</label><input type="number" step="any" id="feat-Threonine" value="0.4" required class="culture-input"></div>
+                        <div class="input-group"><label>Tryptophane</label><input type="number" step="any" id="feat-Tryptophane" value="0.05" required class="culture-input"></div>
+                        <div class="input-group"><label>Tyrosine</label><input type="number" step="any" id="feat-Tyrosine" value="0.2" required class="culture-input"></div>
+                        <div class="input-group"><label>Valine</label><input type="number" step="any" id="feat-Valine" value="0.4" required class="culture-input"></div>
+                        <div class="input-group"><label>Cystine</label><input type="number" step="any" id="feat-Cystine" value="0.1" required class="culture-input"></div>
+                    </div>
+                </div>
+
+                <!-- Group 2: Vitamins -->
+                <div style="margin-bottom: 1.5rem;">
+                    <h4 style="font-size: 0.82rem; color: #a855f7; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem;">
+                        2. Vitamins & Factors (8 Components)
+                    </h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 0.75rem;">
+                        <div class="input-group"><label>Choline</label><input type="number" step="any" id="feat-Choline" value="0.007" required class="culture-input"></div>
+                        <div class="input-group"><label>Calcium pantothenate</label><input type="number" step="any" id="feat-Calciumpantothenate" value="0.002" required class="culture-input"></div>
+                        <div class="input-group"><label>Folic acid</label><input type="number" step="any" id="feat-Folicacid" value="0.002" required class="culture-input"></div>
+                        <div class="input-group"><label>Niacinamide</label><input type="number" step="any" id="feat-Niacinamide" value="0.008" required class="culture-input"></div>
+                        <div class="input-group"><label>Pyridoxal</label><input type="number" step="any" id="feat-Pyridoxal" value="0.005" required class="culture-input"></div>
+                        <div class="input-group"><label>Riboflavin</label><input type="number" step="any" id="feat-Riboflavin" value="0.0003" required class="culture-input"></div>
+                        <div class="input-group"><label>Thiamine</label><input type="number" step="any" id="feat-Thiamine" value="0.003" required class="culture-input"></div>
+                        <div class="input-group"><label>Inositol</label><input type="number" step="any" id="feat-Inositol" value="0.01" required class="culture-input"></div>
+                    </div>
+                </div>
+
+                <!-- Group 3: Inorganic Salts & Energy -->
+                <div style="margin-bottom: 1.5rem;">
+                    <h4 style="font-size: 0.82rem; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.75rem;">
+                        3. Inorganic Salts, Glucose & FBS (8 Components)
+                    </h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 0.75rem;">
+                        <div class="input-group"><label>CaCl2</label><input type="number" step="any" id="feat-CaCl2" value="1.8" required class="culture-input"></div>
+                        <div class="input-group"><label>MgSO4</label><input type="number" step="any" id="feat-MgSO4" value="0.8" required class="culture-input"></div>
+                        <div class="input-group"><label>KCl</label><input type="number" step="any" id="feat-KCl" value="5.5" required class="culture-input"></div>
+                        <div class="input-group"><label>NaHCO3</label><input type="number" step="any" id="feat-NaHCO3" value="26.0" required class="culture-input"></div>
+                        <div class="input-group"><label>NaCl</label><input type="number" step="any" id="feat-NaCl" value="120.0" required class="culture-input"></div>
+                        <div class="input-group"><label>NaH2PO4</label><input type="number" step="any" id="feat-NaH2PO4" value="1.0" required class="culture-input"></div>
+                        <div class="input-group"><label>Glucose</label><input type="number" step="any" id="feat-Glucose" value="5.6" required class="culture-input"></div>
+                        <div class="input-group"><label>FBS (Serum Fraction)</label><input type="number" step="any" id="feat-FBS" value="0.05" required class="culture-input"></div>
+                    </div>
+                </div>
+
+                <div style="text-align: right;">
+                    <button type="submit" id="predict-btn" class="action-btn primary-btn" style="padding: 0.75rem 2rem; font-weight: 700;">
+                        ⚡ Predict Cell Growth (A450 @ 168h)
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Right Column: Prediction Output Card -->
+        <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+            <div class="table-section no-margin" style="padding: 1.5rem; background-color: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--border-radius-lg);">
+                <h3 style="margin: 0 0 1rem 0; font-family: var(--font-heading); color: var(--text-primary); font-size: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border-color);">
+                    🎯 Predicted Biomass Yield
+                </h3>
+
+                <div style="text-align: center; padding: 1rem 0;">
+                    <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">PREDICTED A450 ABSORBANCE</span>
+                    <div id="result-value-display" style="font-size: 2.5rem; font-weight: 800; color: #10b981; line-height: 1.2; margin: 0.3rem 0;">
+                        1.4820
+                    </div>
+                    <span id="result-rating-badge" style="display: inline-block; font-size: 0.75rem; padding: 0.25rem 0.75rem; background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3); border-radius: 20px; color: #10b981; font-weight: 700;">
+                        Excellent
+                    </span>
+                </div>
+
+                <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color); font-size: 0.82rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span style="color: var(--text-muted);">Growth Yield Category:</span>
+                        <span id="result-category-display" style="font-weight: 700; color: var(--text-primary);">Optimal High Biomass Yield</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span style="color: var(--text-muted);">Evaluated Model:</span>
+                        <span id="res-model-name" style="font-weight: 600; color: var(--text-secondary);">RandomForestRegressor</span>
+                    </div>
+                </div>
+
+                <!-- SHAP Feature Impact -->
+                <div style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                    <h4 style="font-size: 0.82rem; color: var(--text-primary); margin-bottom: 0.75rem;">
+                        🧠 Top SHAP Feature Contributors
+                    </h4>
+
+                    <div style="margin-bottom: 0.75rem;">
+                        <span style="font-size: 0.72rem; color: #10b981; font-weight: 700;">TOP POSITIVE IMPACTS (↑)</span>
+                        <div id="positive-contributors-list" style="display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.35rem;">
+                            <!-- SHAP elements -->
+                        </div>
+                    </div>
+
+                    <div>
+                        <span style="font-size: 0.72rem; color: #ef4444; font-weight: 700;">TOP NEGATIVE IMPACTS (↓)</span>
+                        <div id="negative-contributors-list" style="display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.35rem;">
+                            <!-- SHAP elements -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentSourceMode = 'example';
+
+document.addEventListener("DOMContentLoaded", function() {
+    loadCultureSummary();
+    loadCultureRecommendations();
+});
+
+function handleSourceModeChange(mode) {
+    currentSourceMode = mode;
+    const exView = document.getElementById('example-view-mode');
+    const manEdit = document.getElementById('manual-edit-mode');
+    const provTag = document.getElementById('provenance-source-tag');
+    const badge = document.getElementById('metrics-panel-badge');
+
+    if (mode === 'example') {
+        exView.style.display = 'block';
+        manEdit.style.display = 'none';
+        provTag.innerText = 'Source: Example Demonstration Dataset';
+        provTag.style.color = '#38bdf8';
+        provTag.style.borderColor = 'rgba(56,189,248,0.3)';
+        provTag.style.background = 'rgba(56,189,248,0.12)';
+
+        if (badge) {
+            badge.innerText = 'Live Telemetry';
+            badge.style.color = '#10b981';
+            badge.style.borderColor = 'rgba(16,185,129,0.3)';
+            badge.style.backgroundColor = 'rgba(16,185,129,0.1)';
+        }
+
+        loadCultureSummary();
+        loadCultureRecommendations();
+    } else {
+        exView.style.display = 'none';
+        manEdit.style.display = 'block';
+        provTag.innerText = 'Source: Manual User Input';
+        provTag.style.color = '#f59e0b';
+        provTag.style.borderColor = 'rgba(245,158,11,0.3)';
+        provTag.style.background = 'rgba(245,158,11,0.12)';
+
+        if (badge) {
+            badge.innerText = 'Manual Edit Mode';
+            badge.style.color = '#f59e0b';
+            badge.style.borderColor = 'rgba(245,158,11,0.3)';
+            badge.style.backgroundColor = 'rgba(245,158,11,0.1)';
+        }
+
+        triggerManualAnalysis();
+    }
+}
+
+function submitManualAnalysis(e) {
+    if (e) e.preventDefault();
+    triggerManualAnalysis();
+}
+
+function triggerManualAnalysis() {
+    const payload = {
+        data_source: "manual",
+        cell_density: parseFloat(document.getElementById('in-density').value) || 1.25,
+        confluency: parseFloat(document.getElementById('in-confluency').value) || 78.5,
+        passage_number: parseInt(document.getElementById('in-passage').value) || 4,
+        incubator_temperature_c: parseFloat(document.getElementById('in-temp').value) || 37.0,
+        co2_percent: parseFloat(document.getElementById('in-co2').value) || 5.0,
+        relative_humidity_percent: parseFloat(document.getElementById('in-humidity').value) || 95.0,
+        culture_age_days: parseFloat(document.getElementById('in-age').value) || 2.0
+    };
+
+    const btn = document.getElementById('analyze-culture-btn');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `⏳ Analyzing Manual Culture...`;
+    }
+
+    fetch('/api/culture/summary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'success') {
+            updateSummaryCards(data);
+        }
+    })
+    .catch(err => console.error("Error analyzing manual culture summary:", err));
+
+    fetch('/api/culture/recommendations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(data => {
+        renderRecommendations(data);
+    })
+    .catch(err => console.error("Error analyzing manual culture recommendations:", err))
+    .finally(() => {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `🚀 Analyze Culture`;
+        }
+    });
+}
+
+function loadCultureSummary() {
+    fetch('/api/culture/summary')
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                updateSummaryCards(data);
+            }
+        })
+        .catch(err => console.error("Error loading culture summary:", err));
+}
+
+function updateSummaryCards(data) {
+    document.getElementById('opt-culture-score').innerText = `${data.quality_indicators.overall_culture_score} / 100`;
+    document.getElementById('opt-growth-status').innerText = data.quality_indicators.growth_status;
+    document.getElementById('opt-risk-level').innerText = `${data.quality_indicators.risk_level} Risk`;
+    document.getElementById('opt-confluency').innerText = `${data.confluency}%`;
+
+    document.getElementById('m-status').innerText = data.culture_status;
+    document.getElementById('m-density').innerText = data.cell_density;
+    document.getElementById('m-confluency').innerText = `${data.confluency}%`;
+    document.getElementById('m-passage').innerText = data.passage_number;
+    document.getElementById('m-temp').innerText = `${data.incubator_temperature_c} °C`;
+    document.getElementById('m-co2').innerText = `${data.co2_percent} %`;
+    document.getElementById('m-humidity').innerText = `${data.relative_humidity_percent} %`;
+    document.getElementById('m-age').innerText = `${data.culture_age_days} Days`;
+
+    if (data.timestamp) {
+        document.getElementById('provenance-timestamp').innerText = `Timestamp: ${data.timestamp}`;
+    }
+    if (data.data_source_label) {
+        document.getElementById('provenance-source-tag').innerText = `Source: ${data.data_source_label}`;
+    }
+}
+
+function loadCultureRecommendations() {
+    fetch('/api/culture/recommendations')
+        .then(res => res.json())
+        .then(data => {
+            renderRecommendations(data);
+        })
+        .catch(err => console.error("Error loading recommendations:", err));
+}
+
+function renderRecommendations(data) {
+    const container = document.getElementById('recommendations-container');
+    container.innerHTML = '';
+    const recs = data.recommendations || [];
+    if (recs.length > 0) {
+        recs.forEach(r => {
+            let badgeBg = 'rgba(16, 185, 129, 0.15)';
+            let badgeBorder = 'rgba(16, 185, 129, 0.3)';
+            let badgeColor = '#10b981';
+            if (r.priority === 'High') {
+                badgeBg = 'rgba(239, 68, 68, 0.15)';
+                badgeBorder = 'rgba(239, 68, 68, 0.3)';
+                badgeColor = '#ef4444';
+            } else if (r.priority === 'Medium') {
+                badgeBg = 'rgba(245, 158, 11, 0.15)';
+                badgeBorder = 'rgba(245, 158, 11, 0.3)';
+                badgeColor = '#f59e0b';
+            }
+
+            container.innerHTML += `
+                <div style="padding: 0.85rem; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: var(--border-radius-md); display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
+                    <div>
+                        <div style="font-weight: 700; color: var(--text-primary); font-size: 0.85rem;">
+                            📌 ${r.action}
+                        </div>
+                        <div style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 0.2rem;">
+                            ${r.reason}
+                        </div>
+                    </div>
+                    <span style="font-size: 0.72rem; padding: 0.2rem 0.55rem; background: ${badgeBg}; border: 1px solid ${badgeBorder}; border-radius: 4px; color: ${badgeColor}; font-weight: 700; white-space: nowrap;">
+                        ${r.priority} Priority
+                    </span>
+                </div>`;
+        });
+    } else {
+        container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 1rem;">No recommendations generated</div>`;
+    }
+}
+
+const baselineMedians = {
+    "Arginine": 0.6, "Glutamine": 2.0, "Histidine": 0.2, "Isoleucine": 0.4,
+    "Leucine": 0.4, "Lysine": 0.4, "Methionine": 0.1, "Phenylalanine": 0.2,
+    "Threonine": 0.4, "Tryptophane": 0.05, "Tyrosine": 0.2, "Valine": 0.4,
+    "Cystine": 0.1, "Choline": 0.007, "Calciumpantothenate": 0.002,
+    "Folicacid": 0.002, "Niacinamide": 0.008, "Pyridoxal": 0.005,
+    "Riboflavin": 0.0003, "Thiamine": 0.003, "Inositol": 0.01, "CaCl2": 1.8,
+    "MgSO4": 0.8, "KCl": 5.5, "NaHCO3": 26.0, "NaCl": 120.0, "NaH2PO4": 1.0,
+    "Glucose": 5.6, "FBS": 0.05
+};
+
+function loadPreset(presetName) {
+    if (presetName === 'baseline') {
+        Object.keys(baselineMedians).forEach(key => {
+            const el = document.getElementById(`feat-${key}`);
+            if (el) el.value = baselineMedians[key];
+        });
+    } else if (presetName === 'high_serum') {
+        Object.keys(baselineMedians).forEach(key => {
+            const el = document.getElementById(`feat-${key}`);
+            if (el) el.value = baselineMedians[key];
+        });
+        document.getElementById('feat-FBS').value = 0.15;
+        document.getElementById('feat-Glucose').value = 10.0;
+        document.getElementById('feat-Glutamine').value = 4.0;
+    }
+}
+
+function submitPrediction(e) {
+    e.preventDefault();
+    const btn = document.getElementById('predict-btn');
+    btn.disabled = true;
+    btn.innerHTML = `⏳ Computing SHAP Prediction...`;
+
+    const payload = {};
+    Object.keys(baselineMedians).forEach(key => {
+        const el = document.getElementById(`feat-${key}`);
+        payload[key] = el ? parseFloat(el.value) || 0 : baselineMedians[key];
+    });
+
+    fetch('/api/culture/predict', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.prediction_status === 'success') {
+            document.getElementById('result-value-display').innerText = data.predicted_mean_A450_168h;
+            document.getElementById('result-category-display').innerText = data.growth_category;
+            document.getElementById('result-rating-badge').innerText = data.rating_badge;
+            document.getElementById('res-model-name').innerText = data.model_name;
+
+            const posContainer = document.getElementById('positive-contributors-list');
+            posContainer.innerHTML = '';
+            const posFeats = data.top_positive_features || [];
+            if (posFeats.length > 0) {
+                posFeats.forEach(item => {
+                    posContainer.innerHTML += `
+                        <span style="display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.75rem; padding: 0.25rem 0.5rem; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: var(--border-radius-md); color: #10b981; font-weight: 600;">
+                            ↑ ${item.feature}: +${item.impact}
+                        </span>`;
+                });
+            } else {
+                posContainer.innerHTML = `<span style="font-size: 0.78rem; color: var(--text-muted);">None detected</span>`;
+            }
+
+            const negContainer = document.getElementById('negative-contributors-list');
+            negContainer.innerHTML = '';
+            const negFeats = data.top_negative_features || [];
+            if (negFeats.length > 0) {
+                negFeats.forEach(item => {
+                    negContainer.innerHTML += `
+                        <span style="display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.75rem; padding: 0.25rem 0.5rem; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: var(--border-radius-md); color: #ef4444; font-weight: 600;">
+                            ↓ ${item.feature}: ${item.impact}
+                        </span>`;
+                });
+            } else {
+                negContainer.innerHTML = `<span style="font-size: 0.78rem; color: var(--text-muted);">None detected</span>`;
+            }
+        } else {
+            alert(`Prediction error: ${data.error}`);
+        }
+    })
+    .catch(err => alert(`Network error: ${err.message}`))
+    });
+}
+
+function sendCultureToLab() {
+    const payload = {
+        module_type: "culture",
+        source_mode: (typeof currentCultureSource !== 'undefined') ? currentCultureSource : "Example Culture",
+        cell_density: document.getElementById('val-cell-density') ? document.getElementById('val-cell-density').innerText : "1.2e5 cells/mL",
+        confluency: document.getElementById('val-confluency') ? document.getElementById('val-confluency').innerText : "82.5 %",
+        passage_number: document.getElementById('val-passage-num') ? document.getElementById('val-passage-num').innerText : "P4",
+        temperature: document.getElementById('val-incubator-temp') ? document.getElementById('val-incubator-temp').innerText : "37.0 °C",
+        co2: document.getElementById('val-co2') ? document.getElementById('val-co2').innerText : "5.0 %",
+        humidity: document.getElementById('val-humidity') ? document.getElementById('val-humidity').innerText : "95.0 %",
+        culture_score: document.getElementById('opt-culture-score') ? document.getElementById('opt-culture-score').innerText : "88 / 100",
+        growth_status: document.getElementById('opt-growth-status') ? document.getElementById('opt-growth-status').innerText : "Exponential Growth",
+        risk_level: document.getElementById('opt-risk-level') ? document.getElementById('opt-risk-level').innerText : "Low Risk",
+        biomass_prediction: "Optimal High Yield"
+    };
+
+    const btn = document.getElementById('send-culture-to-lab-btn');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerText = "⏳ Transferring to AI Lab...";
+    }
+
+    fetch('/api/laboratory/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(resData => {
+        if (resData.status === 'success') {
+            window.location.href = '/laboratory';
+        } else {
+            alert(`Transfer failed: ${resData.message}`);
+        }
+    })
+    .catch(err => alert(`Network error: ${err.message}`))
+    .finally(() => {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerText = "🧠 Send Culture Results to AI Laboratory";
+        }
+    });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,330 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="dashboard-header" style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h2 style="font-size: 1.6rem; font-weight: 800; color: var(--text-primary); display: flex; align-items: center; gap: 0.6rem;">
+            🧠 Central AI Laboratory Workspace
+        </h2>
+        <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.25rem;">
+            Multi-Module Cross-Domain Analysis & Interpretation Engine (CoreAI BIO v1.3)
+        </p>
+    </div>
+
+    <!-- Multi-Format Export Action Bar -->
+    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+        <button onclick="exportReportFormat('json')" class="action-btn secondary-btn" style="padding: 0.45rem 0.85rem; font-size: 0.8rem; font-weight: 700; border-color: rgba(56,189,248,0.4); color: #38bdf8;">
+            📥 Export JSON
+        </button>
+        <button onclick="exportReportFormat('pdf')" class="action-btn secondary-btn" style="padding: 0.45rem 0.85rem; font-size: 0.8rem; font-weight: 700; border-color: rgba(239,68,68,0.4); color: #ef4444;">
+            📄 Export PDF
+        </button>
+        <button onclick="exportReportFormat('html')" class="action-btn primary-btn" style="padding: 0.45rem 0.85rem; font-size: 0.8rem; font-weight: 700; background: var(--accent-gradient);">
+            🌐 Export HTML
+        </button>
+    </div>
+</div>
+
+<!-- Scientific Scope & Causal Guardrail Banner -->
+<div style="background: rgba(168, 85, 247, 0.08); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: var(--border-radius-md); padding: 0.85rem 1.25rem; margin-bottom: 1.5rem; display: flex; align-items: flex-start; gap: 0.75rem;">
+    <span style="font-size: 1.2rem;">🔬</span>
+    <div style="font-size: 0.82rem; color: #c084fc; line-height: 1.45;">
+        <strong>Multi-Module Integration Workspace:</strong> Consolidates independent analytical streams into a single experiment session (<code>EXP-ID</code>). Preserves strict scientific independence—causal connections across modules are not assumed without matched biological experiment provenance.
+    </div>
+</div>
+
+<!-- Top Section: Experiment Summary & Workspace Status Matrix -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+    <!-- Active Experiment Details -->
+    <div class="detail-panel">
+        <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h3>🔬 Active Experiment Session</h3>
+            <span id="lab-exp-id-badge" class="panel-status info-badge" style="color: #a855f7; border-color: rgba(168,85,247,0.3); background: rgba(168,85,247,0.1);">--</span>
+        </div>
+        <div class="panel-body">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                <tbody>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <td style="padding: 0.6rem 0; color: var(--text-muted);">Created Timestamp</td>
+                        <td id="lab-created-time" style="padding: 0.6rem 0; font-weight: 600; color: var(--text-secondary); text-align: right;">--</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <td style="padding: 0.6rem 0; color: var(--text-muted);">Last Updated</td>
+                        <td id="lab-updated-time" style="padding: 0.6rem 0; font-weight: 600; color: #38bdf8; text-align: right;">--</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <td style="padding: 0.6rem 0; color: var(--text-muted);">Matched Experiment State</td>
+                        <td id="lab-matched-state" style="padding: 0.6rem 0; font-weight: 600; color: #f59e0b; text-align: right;">Independent Transferred Streams</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 0.6rem 0; color: var(--text-muted);">Session Engine Version</td>
+                        <td style="padding: 0.6rem 0; font-weight: 700; color: #10b981; text-align: right;">v1.3.0 Multi-Module</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Workspace Status Matrix -->
+    <div class="detail-panel">
+        <div class="panel-header">
+            <h3>📊 Experiment Workspace Status Matrix</h3>
+        </div>
+        <div class="panel-body">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; font-size: 0.85rem;">
+                <div style="background: rgba(15,23,42,0.6); border: 1px solid var(--border-color); border-radius: var(--border-radius-sm); padding: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-weight: 600; color: var(--text-primary);">Cell Morphology</span>
+                    <span id="status-morphology" class="panel-status info-badge" style="font-size: 0.72rem;">Not Started</span>
+                </div>
+                <div style="background: rgba(15,23,42,0.6); border: 1px solid var(--border-color); border-radius: var(--border-radius-sm); padding: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-weight: 600; color: var(--text-primary);">Culture Optimizer</span>
+                    <span id="status-culture" class="panel-status info-badge" style="font-size: 0.72rem;">Not Started</span>
+                </div>
+                <div style="background: rgba(15,23,42,0.6); border: 1px solid var(--border-color); border-radius: var(--border-radius-sm); padding: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-weight: 600; color: var(--text-primary);">Cell Fate Analyzer</span>
+                    <span id="status-cell_fate" class="panel-status info-badge" style="font-size: 0.72rem;">Not Started</span>
+                </div>
+                <div style="background: rgba(15,23,42,0.6); border: 1px solid var(--border-color); border-radius: var(--border-radius-sm); padding: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-weight: 600; color: var(--text-primary);">NIH S-Index Audit</span>
+                    <span id="status-sindex" class="panel-status info-badge" style="font-size: 0.72rem;">Not Started</span>
+                </div>
+            </div>
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.85rem; line-height: 1.4;">
+                Status options: <code style="color:#10b981;">Completed</code>, <code style="color:#38bdf8;">Updated</code>, <code style="color:#94a3b8;">Not Started</code>, <code style="color:#ef4444;">Failed</code>, <code style="color:#f59e0b;">Not Applicable</code>.
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Integrated Research Synthesis Panel -->
+<div class="detail-panel" style="margin-bottom: 2rem;">
+    <div class="panel-header">
+        <h3>🤖 Integrated Multi-Module Synthesis & Causal Safety Guardrail</h3>
+    </div>
+    <div class="panel-body">
+        <div id="integrated-synthesis-text" style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--border-color); border-radius: var(--border-radius-md); padding: 1.25rem; font-size: 0.88rem; line-height: 1.65; color: var(--text-primary); margin-bottom: 1rem;">
+            Loading multi-module research synthesis...
+        </div>
+    </div>
+</div>
+
+<!-- Module Interpretation Cards Section -->
+<h3 style="font-size: 1.2rem; font-weight: 700; color: var(--text-primary); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+    🗂️ Module Interpretation Cards
+</h3>
+
+<div id="module-cards-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+    <!-- Cards dynamically populated via JS -->
+</div>
+
+<!-- Provenance & Telemetry Metadata Section -->
+<div class="detail-panel" style="margin-bottom: 2rem;">
+    <div class="panel-header">
+        <h3>📜 System Provenance & Telemetry Metadata</h3>
+    </div>
+    <div class="panel-body">
+        <div id="provenance-details-container" style="font-size: 0.82rem; color: var(--text-secondary);">
+            Loading telemetry provenance details...
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    loadLaboratorySession();
+});
+
+function loadLaboratorySession() {
+    fetch('/api/laboratory/session')
+        .then(res => res.json())
+        .then(data => {
+            console.log("[Multi-Module Laboratory Session Data]", data);
+            if (data.status === 'success' && data.has_session) {
+                renderLaboratorySession(data.session);
+            } else {
+                renderEmptyLaboratoryState();
+            }
+        })
+        .catch(err => {
+            console.error("Error loading laboratory session:", err);
+            renderEmptyLaboratoryState();
+        });
+}
+
+function getStatusBadgeStyle(status) {
+    switch (status) {
+        case 'Completed':
+            return 'background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.4); color: #10b981; font-weight: 700;';
+        case 'Updated':
+            return 'background: rgba(56,189,248,0.15); border: 1px solid rgba(56,189,248,0.4); color: #38bdf8; font-weight: 700;';
+        case 'Failed':
+            return 'background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.4); color: #ef4444; font-weight: 700;';
+        case 'Not Applicable':
+            return 'background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.4); color: #f59e0b; font-weight: 700;';
+        default:
+            return 'background: rgba(148,163,184,0.1); border: 1px solid rgba(148,163,184,0.3); color: #94a3b8; font-weight: 500;';
+    }
+}
+
+function renderLaboratorySession(session) {
+    // 1. Session Badges & Timestamps
+    document.getElementById('lab-exp-id-badge').innerText = session.experiment_id || 'EXP-2026-0001';
+    document.getElementById('lab-created-time').innerText = session.created_timestamp || '--';
+    document.getElementById('lab-updated-time').innerText = session.last_updated_timestamp || '--';
+    
+    const isMatched = session.is_same_experiment_matched;
+    document.getElementById('lab-matched-state').innerText = isMatched ? 'Matched Biological Experiment' : 'Independent Transferred Streams';
+    document.getElementById('lab-matched-state').style.color = isMatched ? '#10b981' : '#f59e0b';
+
+    // 2. Status Matrix
+    const matrix = session.status_matrix || {};
+    ['morphology', 'culture', 'cell_fate', 'sindex'].forEach(modKey => {
+        const elem = document.getElementById(`status-${modKey}`);
+        if (elem) {
+            const st = matrix[modKey] || 'Not Started';
+            elem.innerText = st;
+            elem.style.cssText = `font-size: 0.72rem; padding: 0.2rem 0.5rem; border-radius: 4px; ${getStatusBadgeStyle(st)}`;
+        }
+    });
+
+    // 3. Integrated Research Synthesis
+    document.getElementById('integrated-synthesis-text').innerText = session.integrated_synthesis || 
+        "No active multi-module results. Transfer results from Cell Morphology, Culture Optimizer, Cell Fate Analyzer, or NIH S-Index Audit to generate integrated synthesis.";
+
+    // 4. Render Module Interpretation Cards
+    const cardsContainer = document.getElementById('module-cards-container');
+    cardsContainer.innerHTML = '';
+
+    const mods = session.modules || {};
+    if (Object.keys(mods).length === 0) {
+        cardsContainer.innerHTML = `
+            <div class="detail-panel" style="grid-column: 1 / -1; padding: 2rem; text-align: center; color: var(--text-muted);">
+                ℹ️ No active module cards transferred yet. Click "Send Results to AI Laboratory" on any analytical module page.
+            </div>
+        `;
+    } else {
+        if (mods.morphology) renderMorphologyCard(cardsContainer, mods.morphology);
+        if (mods.culture) renderCultureCard(cardsContainer, mods.culture);
+        if (mods.cell_fate) renderCellFateCard(cardsContainer, mods.cell_fate);
+        if (mods.sindex) renderSindexCard(cardsContainer, mods.sindex);
+    }
+
+    // 5. System Provenance
+    const provContainer = document.getElementById('provenance-details-container');
+    provContainer.innerHTML = `
+        <table style="width: 100%; border-collapse: collapse;">
+            <tbody>
+                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);"><td style="padding: 0.4rem 0; width: 30%; color: var(--text-muted);">Experiment ID</td><td style="font-weight: 700; color: #a855f7;">${session.experiment_id}</td></tr>
+                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);"><td style="padding: 0.4rem 0; color: var(--text-muted);">Created Timestamp</td><td>${session.created_timestamp}</td></tr>
+                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);"><td style="padding: 0.4rem 0; color: var(--text-muted);">Last Updated</td><td>${session.last_updated_timestamp}</td></tr>
+                <tr><td style="padding: 0.4rem 0; color: var(--text-muted);">Regulatory Disclaimer</td><td style="color: #f59e0b;">${session.research_disclaimer}</td></tr>
+            </tbody>
+        </table>
+    `;
+}
+
+function renderMorphologyCard(container, m) {
+    container.innerHTML += `
+        <div class="detail-panel">
+            <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <h3>🔬 Cell Morphology Summary</h3>
+                <span class="panel-status info-badge" style="color: #f59e0b; border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.1);">Morphology</span>
+            </div>
+            <div class="panel-body">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                    <tbody>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);"><td style="padding: 0.5rem 0; color: var(--text-muted);">Tissue Profile</td><td style="text-align: right; font-weight: 700; color: #f59e0b;">${m.tissue_profile}</td></tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);"><td style="padding: 0.5rem 0; color: var(--text-muted);">Image Source</td><td style="text-align: right; font-weight: 600; color: #10b981;">${m.image_source}</td></tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);"><td style="padding: 0.5rem 0; color: var(--text-muted);">Segmentation Quality</td><td style="text-align: right; font-weight: 700; color: #38bdf8;">${m.segmentation_quality}</td></tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);"><td style="padding: 0.5rem 0; color: var(--text-muted);">Candidate Structures</td><td style="text-align: right; font-weight: 800; color: #a855f7;">${m.candidate_structures}</td></tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);"><td style="padding: 0.5rem 0; color: var(--text-muted);">Mean Circularity / Solidity</td><td style="text-align: right;">${m.mean_circularity} / ${m.mean_solidity}</td></tr>
+                        <tr><td style="padding: 0.5rem 0; color: var(--text-muted);">Measurements Unit</td><td style="text-align: right; font-weight: 700; color: #38bdf8;">${m.measurement_units}</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
+
+function renderCultureCard(container, c) {
+    container.innerHTML += `
+        <div class="detail-panel">
+            <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <h3>🌱 Research Culture Optimizer Summary</h3>
+                <span class="panel-status info-badge" style="color: #10b981; border-color: rgba(16,185,129,0.3); background: rgba(16,185,129,0.1);">Culture</span>
+            </div>
+            <div class="panel-body">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                    <tbody>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);"><td style="padding: 0.5rem 0; color: var(--text-muted);">Source Mode</td><td style="text-align: right; font-weight: 700; color: #38bdf8;">${c.source_mode}</td></tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);"><td style="padding: 0.5rem 0; color: var(--text-muted);">Culture Score</td><td style="text-align: right; font-weight: 800; color: #10b981;">${c.culture_score}</td></tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);"><td style="padding: 0.5rem 0; color: var(--text-muted);">Growth Status</td><td style="text-align: right; font-weight: 600; color: #38bdf8;">${c.growth_status}</td></tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);"><td style="padding: 0.5rem 0; color: var(--text-muted);">Risk Level</td><td style="text-align: right; font-weight: 700; color: #10b981;">${c.risk_level}</td></tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);"><td style="padding: 0.5rem 0; color: var(--text-muted);">Cell Density / Confluency</td><td style="text-align: right;">${c.cell_density} (${c.confluency})</td></tr>
+                        <tr><td style="padding: 0.5rem 0; color: var(--text-muted);">Incubator Temp / CO₂</td><td style="text-align: right;">${c.temperature} | ${c.co2}</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
+
+function renderCellFateCard(container, f) {
+    container.innerHTML += `
+        <div class="detail-panel">
+            <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <h3>🧬 Cell Fate Analyzer Summary</h3>
+                <span class="panel-status info-badge" style="color: #38bdf8; border-color: rgba(56,189,248,0.3); background: rgba(56,189,248,0.1);">Cell Fate</span>
+            </div>
+            <div class="panel-body">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                    <tbody>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);"><td style="padding: 0.5rem 0; color: var(--text-muted);">Dataset Name</td><td style="text-align: right; font-weight: 600; color: #38bdf8;">${f.dataset_name}</td></tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);"><td style="padding: 0.5rem 0; color: var(--text-muted);">Cell / Sample Count</td><td style="text-align: right; font-weight: 700; color: #a855f7;">${f.cell_count} cells (${f.sample_count} samples)</td></tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);"><td style="padding: 0.5rem 0; color: var(--text-muted);">Clustering Method</td><td style="text-align: right;">${f.clustering_method}</td></tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);"><td style="padding: 0.5rem 0; color: var(--text-muted);">Top DGE Biomarkers</td><td style="text-align: right; font-weight: 700; color: #10b981;">${(f.top_biomarkers || []).join(', ')}</td></tr>
+                        <tr><td style="padding: 0.5rem 0; color: var(--text-muted);">Lineage Trajectory</td><td style="text-align: right; font-size: 0.78rem;">${f.differentiation_trajectory}</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
+
+function renderSindexCard(container, s) {
+    container.innerHTML += `
+        <div class="detail-panel">
+            <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <h3>📊 NIH S-Index Audit Summary</h3>
+                <span class="panel-status info-badge" style="color: #c084fc; border-color: rgba(192,132,252,0.3); background: rgba(192,132,252,0.1);">S-Index</span>
+            </div>
+            <div class="panel-body">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                    <tbody>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);"><td style="padding: 0.5rem 0; color: var(--text-muted);">Data Source</td><td style="text-align: right; font-weight: 700; color: #38bdf8;">${s.source_type}</td></tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);"><td style="padding: 0.5rem 0; color: var(--text-muted);">Total Datasets / Repositories</td><td style="text-align: right; font-weight: 700; color: #a855f7;">${s.total_datasets} datasets (${s.total_repositories} repos)</td></tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);"><td style="padding: 0.5rem 0; color: var(--text-muted);">Avg FAIR Compliance</td><td style="text-align: right; font-weight: 800; color: #10b981;">${s.avg_fair_score}</td></tr>
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);"><td style="padding: 0.5rem 0; color: var(--text-muted);">Avg S-Index Rating</td><td style="text-align: right; font-weight: 800; color: #f59e0b;">${s.avg_sindex} / 1.0</td></tr>
+                        <tr><td style="padding: 0.5rem 0; color: var(--text-muted);">Evaluated Accessions</td><td style="text-align: right; font-size: 0.78rem;">${(s.evaluated_accessions || []).join(', ')}</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
+
+function renderEmptyLaboratoryState() {
+    document.getElementById('lab-exp-id-badge').innerText = 'EXP-2026-EMPTY';
+    document.getElementById('integrated-synthesis-text').innerHTML = `
+        <div style="text-align: center; color: var(--text-muted); padding: 1.5rem;">
+            ℹ️ No active experiment session detected.<br>
+            Use <strong>Send Results to AI Laboratory</strong> on Morphology, Culture, Cell Fate, or S-Index pages to populate this workspace.
+        </div>
+    `;
+}
+
+function exportReportFormat(fmt) {
+    window.location.href = `/api/laboratory/export?format=${fmt}`;
+}
+</script>
+{% endblock %}

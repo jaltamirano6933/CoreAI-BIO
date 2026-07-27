@@ -1,0 +1,6 @@
+Database,Term ID,Term Name,Background Universe Size,Term Size,Significant Gene List Size,Overlap Count,Gene Ratio,Background Ratio,Odds Ratio,Raw p-value,Associated Genes,Annotation Source,Database Version or Retrieval Date,Adjusted p-value
+GO Biological Process,GO:0006508,Proteolysis & ECM Remodeling,18450,150,63,4,4/150,150/18450,8.4704,0.001723,"SULF1, A2M, TNC, SPON1",Gene Ontology Consortium (Release 2026-06),2026-07-22,0.008616
+GO Cellular Component,GO:0005576,Extracellular Region / Secreted,19200,320,64,5,5/320,320/19200,5.0635,0.004257,"PAPPA2, A1BG, SULF1, TNC, SPON1",Gene Ontology Consortium (Release 2026-06),2026-07-22,0.010642
+KEGG Pathway,hsa04610,Complement and Coagulation Cascades,8120,85,36,2,2/85,85/8120,5.6704,0.054237,"A2M, A1BG",KEGG Functional Database (v108.0),2026-07-22,0.072102
+KEGG Pathway,hsa04512,ECM-Receptor Interaction,8120,88,36,2,2/88,88/8120,5.4706,0.057682,"TNC, SPON1",KEGG Functional Database (v108.0),2026-07-22,0.072102
+Reactome Pathway,R-HSA-1474244,Extracellular Matrix Organization,11400,290,44,3,3/290,290/11400,2.822,0.100795,"SULF1, TNC, SPON1",Reactome Pathway Database (v88),2026-07-22,0.100795

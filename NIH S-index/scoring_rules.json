@@ -1,0 +1,149 @@
+{
+  "version": "1.0.0",
+  "categories": {
+    "findability": {
+      "max_points": 20,
+      "checks": {
+        "title_present": {
+          "field": "title",
+          "condition": "not_empty",
+          "points": 5,
+          "description": "Dataset has a clear title",
+          "recommendation": "Provide a descriptive title for the dataset."
+        },
+        "description_present": {
+          "field": "description",
+          "condition": "not_empty",
+          "points": 5,
+          "description": "Dataset has a clear description",
+          "recommendation": "Add a detailed description summarizing the dataset's scientific purpose and methods."
+        },
+        "persistent_identifier_present": {
+          "field": "persistent_identifier",
+          "condition": "not_empty",
+          "points": 10,
+          "description": "Dataset has a persistent identifier (DOI or accession ID)",
+          "recommendation": "Register a persistent identifier (e.g., DOI) for the dataset."
+        }
+      }
+    },
+    "accessibility": {
+      "max_points": 15,
+      "checks": {
+        "public_access": {
+          "field": "public_access",
+          "condition": "is_true",
+          "points": 8,
+          "description": "Dataset is publicly accessible",
+          "recommendation": "Ensure public access is enabled in the repository configuration."
+        },
+        "repository_present": {
+          "field": "repository",
+          "condition": "not_empty",
+          "points": 7,
+          "description": "Dataset is hosted in an established repository",
+          "recommendation": "Deposit the dataset in a recognized domain-specific or general repository."
+        }
+      }
+    },
+    "interoperability": {
+      "max_points": 15,
+      "checks": {
+        "machine_readable_format": {
+          "field": "machine_readable_format",
+          "condition": "is_true",
+          "points": 8,
+          "description": "Dataset files are in a machine-readable, structured format",
+          "recommendation": "Use open machine-readable file formats (e.g., JSON, CSV, TSV) rather than proprietary binary files."
+        },
+        "metadata_complete": {
+          "field": "metadata_complete",
+          "condition": "is_true",
+          "points": 7,
+          "description": "Metadata conforms to standard metadata schemas",
+          "recommendation": "Complete all standard metadata fields specified by the repository schema."
+        }
+      }
+    },
+    "reusability": {
+      "max_points": 20,
+      "checks": {
+        "license_present": {
+          "field": "license",
+          "condition": "not_empty",
+          "points": 8,
+          "description": "Dataset has a clear usage license (e.g. CC0, CC-BY)",
+          "recommendation": "Specify a clear data sharing license (e.g. CC-BY 4.0) to legalise reuse."
+        },
+        "raw_data_available": {
+          "field": "raw_data_available",
+          "condition": "is_true",
+          "points": 6,
+          "description": "Raw data files are available",
+          "recommendation": "Upload the raw, primary datasets to allow complete reproduction of the analysis."
+        },
+        "processed_data_available": {
+          "field": "processed_data_available",
+          "condition": "is_true",
+          "points": 6,
+          "description": "Processed/analyzed data files are available",
+          "recommendation": "Provide processed, summarized, or normalized tables for quick reuse."
+        }
+      }
+    },
+    "documentation": {
+      "max_points": 15,
+      "checks": {
+        "protocol_available": {
+          "field": "protocol_available",
+          "condition": "is_true",
+          "points": 5,
+          "description": "Experimental protocol or methodology is documented",
+          "recommendation": "Include experimental protocol documentation (e.g., protocol.io links or methods section)."
+        },
+        "version_information": {
+          "field": "version_information",
+          "condition": "not_empty",
+          "points": 5,
+          "description": "Dataset has versioning information",
+          "recommendation": "Implement semantic versioning (e.g. v1.0.0) to track dataset releases."
+        },
+        "contact_information": {
+          "field": "contact_information",
+          "condition": "not_empty",
+          "points": 5,
+          "description": "Contact email or principal investigator contact is provided",
+          "recommendation": "Add contact information or point-of-contact email for support inquiries."
+        }
+      }
+    },
+    "evidence_of_reuse": {
+      "max_points": 15,
+      "checks": {
+        "publication_linked": {
+          "field": "publication_linked",
+          "condition": "is_true",
+          "points": 5,
+          "description": "Dataset is linked to a peer-reviewed publication",
+          "recommendation": "Link the dataset to its corresponding peer-reviewed publication."
+        },
+        "citations_threshold": {
+          "field": "citation_count",
+          "condition": "numeric_threshold",
+          "threshold": 1,
+          "points": 5,
+          "description": "Dataset has been cited by at least one scientific paper",
+          "recommendation": "Promote the dataset in relevant scientific forums to encourage citations."
+        },
+        "reuse_count_threshold": {
+          "field": "reuse_count",
+          "condition": "numeric_threshold",
+          "threshold": 1,
+          "points": 5,
+          "description": "Dataset has been downloaded or reused in another project",
+          "recommendation": "Share metadata in search registries to increase downloads and reuse."
+        }
+      }
+    }
+  }
+}

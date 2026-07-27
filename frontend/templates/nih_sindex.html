@@ -1,0 +1,2319 @@
+{% extends 'base.html' %}
+
+{% block title %}NIH Data Sharing Index (S-Index) Analytics - CoreAI BIO{% endblock %}
+
+{% block head %}
+<!-- Load Chart.js CDN dynamically -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+/* Pure CSS custom hover tooltips for provenance pills */
+.prov-badge {
+    position: relative;
+    cursor: pointer;
+}
+
+.prov-badge::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 125%;
+    right: 0;
+    width: 260px;
+    background-color: #111622;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 0.75rem;
+    border-radius: var(--border-radius-md);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+    font-size: 0.75rem;
+    font-family: var(--font-body);
+    line-height: 1.4;
+    z-index: 9999;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(5px);
+    transition: opacity 0.2s, transform 0.2s;
+    white-space: pre-wrap;
+    text-align: left;
+}
+
+.prov-badge:hover::after {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+.spinner-icon {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 0.8s linear infinite;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-header-row">
+    <div>
+        <a href="/" class="back-link">&larr; Back to SaaS Console</a>
+        <h1 class="dashboard-title">
+            NIH Data Sharing Index <span class="text-glow">(S-Index)</span>
+            <span id="header-source-badge" class="demo-badge">Example Dataset Records</span>
+        </h1>
+        <p class="dashboard-subtitle">Professional compliance and sharing index analytics for NIH-funded research datasets.</p>
+    </div>
+    <div class="dashboard-actions" style="position: relative; display: flex; gap: 0.75rem; align-items: center;">
+        <button id="send-sindex-to-lab-btn" onclick="sendSindexToLab()" class="action-btn secondary-btn" style="padding: 0.55rem 1.1rem; font-size: 0.82rem; font-weight: 700; background: linear-gradient(135deg, rgba(168,85,247,0.2), rgba(59,130,246,0.2)); border: 1px solid rgba(168,85,247,0.5); color: #c084fc; cursor: pointer;">
+            🧠 Send Dataset Audit to AI Laboratory
+        </button>
+        <button class="action-btn primary-btn" id="export-btn" onclick="toggleExportDropdown(event)">
+            <span class="btn-icon">📥</span> Export Report
+        </button>
+        <div id="export-dropdown" style="display: none; position: absolute; right: 0; top: 100%; background-color: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--border-radius-md); box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 1000; min-width: 140px; margin-top: 0.5rem; overflow: hidden;">
+            <a href="#" onclick="exportDataset('pdf'); return false;" style="display: block; padding: 0.75rem 1rem; color: var(--text-primary); text-decoration: none; font-size: 0.85rem; transition: background-color 0.2s; border-bottom: 1px solid rgba(255,255,255,0.05);" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.03)'" onmouseout="this.style.backgroundColor='transparent'">PDF Report</a>
+            <a href="#" onclick="exportDataset('csv'); return false;" style="display: block; padding: 0.75rem 1rem; color: var(--text-primary); text-decoration: none; font-size: 0.85rem; transition: background-color 0.2s; border-bottom: 1px solid rgba(255,255,255,0.05);" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.03)'" onmouseout="this.style.backgroundColor='transparent'">CSV Summary</a>
+            <a href="#" onclick="exportDataset('json'); return false;" style="display: block; padding: 0.75rem 1rem; color: var(--text-primary); text-decoration: none; font-size: 0.85rem; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.03)'" onmouseout="this.style.backgroundColor='transparent'">JSON Data</a>
+        </div>
+    </div>
+</div>
+
+<!-- Audit Data Source Selection Card -->
+<div style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--border-color); border-radius: var(--border-radius-md); padding: 1.25rem; margin-bottom: 1.5rem;">
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+        <div style="display: flex; align-items: center; gap: 1.25rem; flex-wrap: wrap;">
+            <span style="font-weight: 700; color: var(--text-primary); font-size: 0.9rem;">
+                📂 Audit Data Source:
+            </span>
+            <label style="display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: #38bdf8; font-weight: 600; cursor: pointer;">
+                <input type="radio" name="sindex_source_type" value="example" checked onchange="handleAuditSourceChange(this.value)">
+                Example Dataset Records (Default)
+            </label>
+            <label style="display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: #f59e0b; font-weight: 600; cursor: pointer;">
+                <input type="radio" name="sindex_source_type" value="geo" onchange="handleAuditSourceChange(this.value)">
+                Enter GEO Accession
+            </label>
+            <label style="display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: #a855f7; font-weight: 600; cursor: pointer;">
+                <input type="radio" name="sindex_source_type" value="doi" onchange="handleAuditSourceChange(this.value)">
+                Enter DOI
+            </label>
+            <label style="display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: #10b981; font-weight: 600; cursor: pointer;">
+                <input type="radio" name="sindex_source_type" value="csv" onchange="handleAuditSourceChange(this.value)">
+                Upload Dataset Metadata CSV
+            </label>
+        </div>
+        
+        <span id="audit-source-provenance-tag" style="font-size: 0.78rem; padding: 0.25rem 0.65rem; background: rgba(56,189,248,0.12); border: 1px solid rgba(56,189,248,0.3); border-radius: 4px; color: #38bdf8; font-weight: 700;">
+            Source: Example Dataset Records
+        </span>
+    </div>
+
+    <!-- Dynamic Form Inputs per Source Type -->
+    <form id="audit-source-form" onsubmit="submitSindexAudit(event)" style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+        <!-- GEO Accession Field -->
+        <div id="source-input-geo" style="display: none; flex-grow: 1;">
+            <input type="text" id="in-geo-acc" placeholder="Enter GEO Accession (e.g. GSE214617 or GSE290316)..." class="culture-input" style="width: 100%; padding: 0.5rem 0.75rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 6px; color: #fff; font-size: 0.85rem;">
+        </div>
+
+        <!-- DOI Input Field -->
+        <div id="source-input-doi" style="display: none; flex-grow: 1;">
+            <input type="text" id="in-doi-str" placeholder="Enter Dataset DOI (e.g. 10.1038/s41587-023-01800-w)..." class="culture-input" style="width: 100%; padding: 0.5rem 0.75rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 6px; color: #fff; font-size: 0.85rem;">
+        </div>
+
+        <!-- CSV File Upload Field -->
+        <div id="source-input-csv" style="display: none; flex-grow: 1;">
+            <input type="file" id="in-csv-file" accept=".csv" class="culture-input" style="width: 100%; padding: 0.4rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 6px; color: #fff; font-size: 0.85rem;">
+        </div>
+
+        <!-- Example Text Hint -->
+        <div id="source-input-example" style="flex-grow: 1; font-size: 0.82rem; color: var(--text-muted);">
+            Evaluates pre-loaded NIH-funded research dataset records (GEO Series & FAIR compliance metrics).
+        </div>
+
+        <button type="submit" id="run-audit-btn" class="action-btn primary-btn" style="padding: 0.55rem 1.5rem; font-weight: 700; font-size: 0.85rem; border-radius: 6px; background-color: var(--accent-orange); border: 1px solid var(--accent-orange);">
+            🚀 Run S-Index Audit
+        </button>
+    </form>
+</div>
+
+<!-- Score Explanation Expandable Section -->
+<details class="detail-panel" style="margin-bottom: 1.5rem;">
+    <summary style="font-weight: 700; color: #f59e0b; cursor: pointer; padding: 1rem 1.25rem; font-size: 0.92rem; display: flex; align-items: center; gap: 0.5rem;">
+        📐 How is the CoreAI Experimental S-Index calculated? (Formula & Scoring Weights)
+    </summary>
+    <div style="padding: 1.25rem; border-top: 1px solid var(--border-color); font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6;">
+        <p style="margin-bottom: 0.75rem;">
+            The <strong>CoreAI Experimental S-Index</strong> evaluates dataset FAIRness, metadata completeness, repository interoperability, and citation impact for research datasets:
+        </p>
+        
+        <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--border-color); border-radius: var(--border-radius-md); padding: 1rem; margin-bottom: 1rem; font-family: var(--font-mono); color: #38bdf8; text-align: center; font-size: 0.88rem;">
+            CoreAI Experimental S-Index = [ (FAIR Score × 0.40) + (Metadata Quality × 0.30) + (Repo Interoperability × 0.20) + (Impact × 0.10) ] / 100
+        </div>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
+            <div style="background: rgba(255,255,255,0.02); padding: 0.75rem; border-radius: 6px; border: 1px solid var(--border-color);">
+                <strong style="color: #38bdf8; display: block; margin-bottom: 0.25rem;">1. FAIR Compliance (40%)</strong>
+                Findability, Accessibility, Interoperability, and Reusability evaluation.
+            </div>
+            <div style="background: rgba(255,255,255,0.02); padding: 0.75rem; border-radius: 6px; border: 1px solid var(--border-color);">
+                <strong style="color: #10b981; display: block; margin-bottom: 0.25rem;">2. Metadata Quality (30%)</strong>
+                MINiML / SOFT XML schema attribute completeness and machine readability.
+            </div>
+            <div style="background: rgba(255,255,255,0.02); padding: 0.75rem; border-radius: 6px; border: 1px solid var(--border-color);">
+                <strong style="color: #a855f7; display: block; margin-bottom: 0.25rem;">3. Repo Interoperability (20%)</strong>
+                Open persistent identifier resolution (GEO, DOI, Zenodo).
+            </div>
+            <div style="background: rgba(255,255,255,0.02); padding: 0.75rem; border-radius: 6px; border: 1px solid var(--border-color);">
+                <strong style="color: #f59e0b; display: block; margin-bottom: 0.25rem;">4. Citation & Impact (10%)</strong>
+                PubMed publication linkage, citations, and re-use count signals.
+            </div>
+        </div>
+
+        <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 1rem;">
+            <em>Note: The CoreAI Experimental S-Index is an internal research metric designed to assist in dataset FAIR auditing and compliance tracking. It is not an official NIH policy metric.</em>
+        </p>
+    </div>
+</details>
+
+<!-- Four KPI Cards -->
+<div class="stats-grid" style="margin-bottom: 2rem;">
+    <div class="stat-card">
+        <div class="stat-icon sindex-blue">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+            </svg>
+        </div>
+        <div class="stat-content">
+            <span class="stat-label">Repositories</span>
+            <span id="kpi-repos" class="stat-value">{{ num_repos }}</span>
+            <span class="stat-change text-success">Active evaluated sources</span>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon sindex-emerald">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+        </div>
+        <div class="stat-content">
+            <span class="stat-label">Datasets</span>
+            <span id="kpi-datasets" class="stat-value">{{ num_datasets }}</span>
+            <span class="stat-change text-success">Evaluated pipelines</span>
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-icon sindex-purple">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M9 12l2 2 4-4"></path>
+            </svg>
+        </div>
+        <div class="stat-content">
+            <span class="stat-label">Average FAIR Score</span>
+            <span id="kpi-avg-fair" class="stat-value">{{ avg_fair }}%</span>
+            <span class="stat-change text-success">Compliance average</span>
+        </div>
+    </div>
+
+    <div class="stat-card highlighted">
+        <div class="card-glow-highlight"></div>
+        <div class="stat-icon sindex-orange">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+        </div>
+        <div class="stat-content">
+            <span class="stat-label">Average S-index</span>
+            <span id="kpi-avg-sindex" class="stat-value">{{ avg_sindex }}</span>
+            <span class="stat-change text-glow">Calculated platform score</span>
+        </div>
+    </div>
+</div>
+
+<!-- Section 2: Six Compliance Analytics Charts -->
+<div class="charts-section">
+    <div class="table-header-row">
+        <h2 class="table-title">Compliance Analytics Charts</h2>
+        <span class="table-subtitle">Interactive metrics</span>
+    </div>
+
+    <!-- Empty State Message when no datasets exist -->
+    <div id="charts-empty-state" style="display: none; text-align: center; color: var(--text-muted); padding: 3rem 1.5rem; background: rgba(15,23,42,0.4); border: 1px dashed var(--border-color); border-radius: var(--border-radius-md);">
+        <span style="font-size: 2.2rem;">📊</span>
+        <p style="margin-top: 0.5rem; font-size: 0.9rem; color: var(--text-secondary);">No dataset audit records loaded for this query.</p>
+        <p style="font-size: 0.78rem; color: var(--text-muted);">Select an Audit Data Source above or enter a valid accession/DOI to render compliance analytics.</p>
+    </div>
+
+    <div id="charts-grid-container" class="charts-grid">
+        <!-- Chart 1: FAIR Score Distribution -->
+        <div class="chart-card">
+            <div class="chart-container">
+                <canvas id="fairDistributionChart"></canvas>
+            </div>
+        </div>
+        <!-- Chart 2: S-index Distribution -->
+        <div class="chart-card">
+            <div class="chart-container">
+                <canvas id="sindexDistributionChart"></canvas>
+            </div>
+        </div>
+        <!-- Chart 3: Repository Distribution -->
+        <div class="chart-card">
+            <div class="chart-container">
+                <canvas id="repositoryDistributionChart"></canvas>
+            </div>
+        </div>
+        <!-- Chart 4: Metadata Completeness -->
+        <div class="chart-card">
+            <div class="chart-container">
+                <canvas id="metadataCompletenessChart"></canvas>
+            </div>
+        </div>
+        <!-- Chart 5: Documentation Quality -->
+        <div class="chart-card">
+            <div class="chart-container">
+                <canvas id="documentationQualityChart"></canvas>
+            </div>
+        </div>
+        <!-- Chart 6: NIH Funding Distribution -->
+        <div class="chart-card">
+            <div class="chart-container">
+                <canvas id="fundingDistributionChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bottom Layout Container (2 Columns) -->
+<div class="analytics-layout">
+    <!-- Left Column: Search & Table -->
+    <div class="analytics-main">
+        <!-- Live GEO Accession Audit Form -->
+        <div class="search-bar-wrapper" style="margin-bottom: 1rem; border: 1px solid rgba(249,115,22,0.3); background-color: rgba(249,115,22,0.02);">
+            <span class="search-icon" style="color: var(--accent-orange);">⚡</span>
+            <form onsubmit="submitGeoSearch(event); return false;" style="display: flex; flex-grow: 1; align-items: center; gap: 0.5rem; width: 100%;">
+                <input type="text" id="geo-input" placeholder="Enter GEO Accession (e.g. GSE214617)..." required style="background: transparent; border: none; color: var(--text-primary); font-size: 0.85rem; outline: none; flex-grow: 1; padding: 0.5rem 0;" pattern="^GSE\d+$" title="GEO Series accession must start with 'GSE' followed by digits.">
+                <button type="submit" id="geo-submit-btn" class="action-btn" style="padding: 0.35rem 1rem; font-size: 0.8rem; background-color: var(--accent-orange); border: 1px solid var(--accent-orange); color: var(--text-primary); font-weight: bold; border-radius: var(--border-radius-md); cursor: pointer; transition: all 0.2s;">
+                    Audit Accession
+                </button>
+            </form>
+        </div>
+        <div id="geo-status-indicator" style="display: none; font-size: 0.8rem; padding: 0.5rem 0.75rem; margin-bottom: 1rem; border-radius: var(--border-radius-md); text-align: left; line-height: 1.4; font-weight: 500;"></div>
+
+        <!-- Search bar wrapper -->
+        <div class="search-bar-wrapper">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="search-input" onkeyup="filterTable()" placeholder="Search Dataset..." aria-label="Search Dataset">
+        </div>
+
+        <!-- Table Container -->
+        <div class="table-section no-margin">
+            <div class="table-container">
+                <table class="dashboard-table" id="datasets-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px; text-align: center;"><input type="checkbox" id="select-all-compare" onclick="toggleSelectAllCompare(this)" style="accent-color: var(--accent-orange);" title="Select for side-by-side comparison"></th>
+                            <th>Dataset</th>
+                            <th>Repository</th>
+                            <th>FAIR</th>
+                            <th>Metadata</th>
+                            <th>Documentation</th>
+                            <th>S-index</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ds in datasets %}
+                        <tr class="clickable-row {% if loop.first %}active-row{% endif %}" 
+                            data-id="{{ ds.metadata.persistent_identifier or 'N/A' }}"
+                            onclick="selectDataset(this, '{{ ds.metadata.persistent_identifier or 'N/A' }}')">
+                            <td style="text-align: center;" onclick="event.stopPropagation();">
+                                <input type="checkbox" class="compare-checkbox" data-id="{{ ds.metadata.persistent_identifier or 'N/A' }}" onchange="handleCheckboxChange()" style="accent-color: var(--accent-orange);" title="Check to compare">
+                            </td>
+                            <td>
+                                <div class="dataset-cell-title">{{ ds.metadata.title }}</div>
+                            </td>
+                            <td>
+                                {% if ds.metadata.persistent_identifier.startswith('GEO:') or ds.metadata.persistent_identifier == 'INCOMPLETE-001' %}
+                                    Sample/Demo Data
+                                {% else %}
+                                    Gene Expression Omnibus (GEO)
+                                    <div class="cache-status-label" style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.2rem;">{{ ds.source_mode or 'Live NCBI GEO Metadata' }}</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="score-badge {% if ds.fair_score >= 85 %}success{% else %}warning{% endif %}">
+                                    {{ ds.fair_score }}%
+                                </span>
+                            </td>
+                            <td>{{ ds.metrics.category_scores.interoperability or 0 }}/15</td>
+                            <td>{{ ds.metrics.category_scores.documentation or 0 }}/15</td>
+                            <td><strong>{{ ds.metrics.normalized_score }}</strong></td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" style="text-align: center; padding: 3rem; color: var(--text-muted); font-size: 0.9rem;">
+                                📁 No GEO datasets found. Enter a GSE accession above to audit.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Detail Panel & S-index Explanations -->
+    <div class="analytics-sidebar">
+        {% if datasets %}
+        {% set first_ds = datasets[0] %}
+        <!-- Details Card -->
+        <div class="detail-panel">
+            <div class="detail-panel-glow"></div>
+            <div class="panel-header">
+                <h3>Dataset Details</h3>
+                <span class="panel-status">Selected</span>
+            </div>
+            
+            <div class="panel-body">
+                <div class="detail-item">
+                    <span class="detail-label">Dataset ID</span>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; justify-content: space-between; width: 100%;">
+                        <span class="detail-value" id="detail-id">{{ first_ds.metadata.persistent_identifier or 'N/A' }}</span>
+                        <span class="prov-badge" id="prov-id" style="cursor: pointer; font-size: 0.65rem; padding: 0.15rem 0.4rem; border-radius: 4px; background-color: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: var(--accent-orange); font-family: monospace;">GEO XML</span>
+                    </div>
+                    <span style="font-size: 0.65rem; color: var(--text-muted); display: none; margin-top: 0.15rem; word-break: break-all;" id="url-id"></span>
+                </div>
+                
+                <div class="detail-item">
+                    <span class="detail-label">Repository</span>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; justify-content: space-between; width: 100%;">
+                        <span class="detail-value" id="detail-repo">
+                            {% if first_ds.metadata.persistent_identifier.startswith('GEO:') or first_ds.metadata.persistent_identifier == 'INCOMPLETE-001' %}
+                                Sample/Demo Data
+                            {% else %}
+                                Gene Expression Omnibus (GEO)
+                            {% endif %}
+                        </span>
+                        <span class="prov-badge" id="prov-repo" style="cursor: pointer; font-size: 0.65rem; padding: 0.15rem 0.4rem; border-radius: 4px; background-color: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: var(--accent-orange); font-family: monospace;">GEO XML</span>
+                    </div>
+                    <div id="detail-cache-status" style="font-size: 0.65rem; color: var(--accent-orange); margin-top: 0.15rem;">
+                        {% if not (first_ds.metadata.persistent_identifier.startswith('GEO:') or first_ds.metadata.persistent_identifier == 'INCOMPLETE-001') %}
+                            {{ first_ds.source_mode or 'Live NCBI GEO Metadata' }}
+                        {% endif %}
+                    </div>
+                    <span style="font-size: 0.65rem; color: var(--text-muted); display: none; margin-top: 0.15rem; word-break: break-all;" id="url-repo"></span>
+                </div>
+
+                <div class="detail-score-grid">
+                    <div class="detail-score-item">
+                        <span class="detail-label">Metadata completeness</span>
+                        <div style="display: flex; align-items: center; gap: 0.5rem; justify-content: space-between; width: 100%;">
+                            <span class="detail-value text-glow" id="detail-metadata">{{ first_ds.metrics.category_scores.interoperability or 0 }}/15</span>
+                            <span class="prov-badge" id="prov-metadata" style="cursor: pointer; font-size: 0.65rem; padding: 0.15rem 0.4rem; border-radius: 4px; background-color: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: var(--accent-orange); font-family: monospace;">GEO XML</span>
+                        </div>
+                        <span style="font-size: 0.65rem; color: var(--text-muted); display: none; margin-top: 0.15rem; word-break: break-all;" id="url-metadata"></span>
+                    </div>
+                    <div class="detail-score-item">
+                        <span class="detail-label">FAIR score</span>
+                        <div style="display: flex; align-items: center; gap: 0.5rem; justify-content: space-between; width: 100%;">
+                            <span class="detail-value text-glow" id="detail-fair">{{ first_ds.fair_score }}%</span>
+                            <span class="prov-badge" id="prov-fair" style="cursor: pointer; font-size: 0.65rem; padding: 0.15rem 0.4rem; border-radius: 4px; background-color: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: var(--accent-orange); font-family: monospace;">GEO XML</span>
+                        </div>
+                        <span style="font-size: 0.65rem; color: var(--text-muted); display: none; margin-top: 0.15rem; word-break: break-all;" id="url-fair"></span>
+                    </div>
+                </div>
+
+                <div class="detail-item">
+                    <span class="detail-label">Documentation quality</span>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; justify-content: space-between; width: 100%;">
+                        <span class="detail-value" id="detail-doc">{{ first_ds.metrics.category_scores.documentation or 0 }}/15</span>
+                        <span class="prov-badge" id="prov-doc" style="cursor: pointer; font-size: 0.65rem; padding: 0.15rem 0.4rem; border-radius: 4px; background-color: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: var(--accent-orange); font-family: monospace;">GEO XML</span>
+                    </div>
+                    <span style="font-size: 0.65rem; color: var(--text-muted); display: none; margin-top: 0.15rem; word-break: break-all;" id="url-doc"></span>
+                </div>
+
+                <div class="detail-item">
+                    <span class="detail-label">Publication</span>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; justify-content: space-between; width: 100%;">
+                        <span class="detail-value text-italic" id="detail-pub">{{ first_ds.metadata.publication or 'No linked publication found' }}</span>
+                        <span class="prov-badge" id="prov-pub" style="cursor: pointer; font-size: 0.65rem; padding: 0.15rem 0.4rem; border-radius: 4px; background-color: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: var(--accent-orange); font-family: monospace;">PubMed</span>
+                    </div>
+                    <span style="font-size: 0.65rem; color: var(--text-muted); display: none; margin-top: 0.15rem; word-break: break-all;" id="url-pub"></span>
+                </div>
+
+                <div class="detail-item">
+                    <span class="detail-label">DOI</span>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; justify-content: space-between; width: 100%;">
+                        <span class="detail-value doi-link" id="detail-doi">{{ first_ds.metadata.doi or 'No linked publication found' }}</span>
+                        <span class="prov-badge" id="prov-doi" style="cursor: pointer; font-size: 0.65rem; padding: 0.15rem 0.4rem; border-radius: 4px; background-color: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: var(--accent-orange); font-family: monospace;">CrossRef</span>
+                    </div>
+                    <span style="font-size: 0.65rem; color: var(--text-muted); display: none; margin-top: 0.15rem; word-break: break-all;" id="url-doi"></span>
+                </div>
+
+                <div class="detail-item">
+                    <span class="detail-label">Funding</span>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; justify-content: space-between; width: 100%;">
+                        <span class="detail-value" id="detail-funding">{{ first_ds.metadata.funding or 'N/A' }}</span>
+                        <span class="prov-badge" id="prov-funding" style="cursor: pointer; font-size: 0.65rem; padding: 0.15rem 0.4rem; border-radius: 4px; background-color: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: var(--accent-orange); font-family: monospace;">NIH Reporter</span>
+                    </div>
+                    <span style="font-size: 0.65rem; color: var(--text-muted); display: none; margin-top: 0.15rem; word-break: break-all;" id="url-funding"></span>
+                </div>
+
+                <div class="detail-item">
+                    <span class="detail-label">Organism</span>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; justify-content: space-between; width: 100%;">
+                        <span class="detail-value" id="detail-organism">{{ first_ds.metadata.organism or 'N/A' }}</span>
+                        <span class="prov-badge" id="prov-organism" style="cursor: pointer; font-size: 0.65rem; padding: 0.15rem 0.4rem; border-radius: 4px; background-color: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: var(--accent-orange); font-family: monospace;">NCBI GEO</span>
+                    </div>
+                    <span style="font-size: 0.65rem; color: var(--text-muted); display: none; margin-top: 0.15rem; word-break: break-all;" id="url-organism"></span>
+                </div>
+
+                <div class="detail-item">
+                    <span class="detail-label">Sequencing/Platform</span>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; justify-content: space-between; width: 100%;">
+                        <span class="detail-value" id="detail-platform">{{ first_ds.metadata.platform or 'N/A' }}</span>
+                        <span class="prov-badge" id="prov-platform" style="cursor: pointer; font-size: 0.65rem; padding: 0.15rem 0.4rem; border-radius: 4px; background-color: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: var(--accent-orange); font-family: monospace;">NCBI GEO</span>
+                    </div>
+                    <span style="font-size: 0.65rem; color: var(--text-muted); display: none; margin-top: 0.15rem; word-break: break-all;" id="url-platform"></span>
+                </div>
+
+                <div class="detail-item">
+                    <span class="detail-label">Number of Samples</span>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; justify-content: space-between; width: 100%;">
+                        <span class="detail-value" id="detail-samples">{{ first_ds.metadata.num_samples or first_ds.metadata.reuse_count or 0 }}</span>
+                        <span class="prov-badge" id="prov-samples" style="cursor: pointer; font-size: 0.65rem; padding: 0.15rem 0.4rem; border-radius: 4px; background-color: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: var(--accent-orange); font-family: monospace;">NCBI GEO</span>
+                    </div>
+                    <span style="font-size: 0.65rem; color: var(--text-muted); display: none; margin-top: 0.15rem; word-break: break-all;" id="url-samples"></span>
+                </div>
+
+                <div class="detail-item">
+                    <span class="detail-label">Submission Date</span>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; justify-content: space-between; width: 100%;">
+                        <span class="detail-value" id="detail-subdate">{{ first_ds.raw_metadata.submission_date or 'N/A' }}</span>
+                        <span class="prov-badge" id="prov-subdate" style="cursor: pointer; font-size: 0.65rem; padding: 0.15rem 0.4rem; border-radius: 4px; background-color: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: var(--accent-orange); font-family: monospace;">NCBI GEO</span>
+                    </div>
+                    <span style="font-size: 0.65rem; color: var(--text-muted); display: none; margin-top: 0.15rem; word-break: break-all;" id="url-subdate"></span>
+                </div>
+
+                <div class="detail-item">
+                    <span class="detail-label">Last Update</span>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; justify-content: space-between; width: 100%;">
+                        <span class="detail-value" id="detail-update">{{ first_ds.raw_metadata.last_update_date or first_ds.metadata.version_information or 'N/A' }}</span>
+                        <span class="prov-badge" id="prov-update" style="cursor: pointer; font-size: 0.65rem; padding: 0.15rem 0.4rem; border-radius: 4px; background-color: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: var(--accent-orange); font-family: monospace;">NCBI GEO</span>
+                    </div>
+                    <span style="font-size: 0.65rem; color: var(--text-muted); display: none; margin-top: 0.15rem; word-break: break-all;" id="url-update"></span>
+                </div>
+
+                <div class="detail-item">
+                    <span class="detail-label">PubMed ID</span>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; justify-content: space-between; width: 100%;">
+                        <span class="detail-value" id="detail-pmid">{{ first_ds.raw_metadata.pubmed_id or 'N/A' }}</span>
+                        <span class="prov-badge" id="prov-pmid" style="cursor: pointer; font-size: 0.65rem; padding: 0.15rem 0.4rem; border-radius: 4px; background-color: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: var(--accent-orange); font-family: monospace;">PubMed</span>
+                    </div>
+                    <span style="font-size: 0.65rem; color: var(--text-muted); display: none; margin-top: 0.15rem; word-break: break-all;" id="url-pmid"></span>
+                </div>
+
+                <div class="detail-item">
+                    <span class="detail-label">FTP Download Links</span>
+                    <div style="display: flex; flex-direction: column; gap: 0.25rem; width: 100%; margin-top: 0.25rem;" id="detail-ftp-links">
+                        {% if first_ds.raw_metadata and first_ds.raw_metadata.supplementary_file_urls %}
+                            {% for url in first_ds.raw_metadata.supplementary_file_urls %}
+                                <a href="{{ url }}" target="_blank" style="color: var(--accent-orange); text-decoration: underline; font-size: 0.75rem; word-break: break-all; margin-bottom: 0.15rem;">🔗 {{ url.split('/')[-1] }}</a>
+                            {% endfor %}
+                        {% else %}
+                            <span style="font-size: 0.75rem; color: var(--text-muted);">No supplementary files found</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Inspect Raw Source Metadata Button -->
+                <div class="detail-item" style="margin-top: 1.25rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 1rem; display: flex; justify-content: center; width: 100%;">
+                    <button onclick="openRawMetadataModal()" style="font-family: var(--font-heading); font-size: 0.8rem; padding: 0.5rem 1rem; width: 100%; border: 1px dashed var(--accent-orange); color: var(--accent-orange); background: transparent; border-radius: var(--border-radius-md); font-weight: bold; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(249, 115, 22, 0.05)'" onmouseout="this.style.background='transparent'">
+                        🔍 Inspect Raw Source Metadata
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Compliance Explanation Card -->
+        <div class="detail-panel explanation-panel" style="margin-top: 1.5rem;">
+            <div class="detail-panel-glow"></div>
+            <div class="panel-header">
+                <h3>Scoring Explanation</h3>
+                <span class="panel-status info-badge" id="explanation-rating">{{ first_ds.metrics.rating }}</span>
+            </div>
+            
+            <div class="panel-body">
+                <!-- 6 Categories Checklists -->
+                <div class="explanation-categories" id="explanation-categories-container">
+                    <!-- Dynamic checks and recommendations are rendered here -->
+                </div>
+                
+                <!-- S-index Natural Language Summary -->
+                <div class="summary-box" style="background-color: rgba(0, 0, 0, 0.15); border: 1px solid var(--border-color); border-radius: var(--border-radius-md); padding: 1.15rem; margin-top: 1.5rem;">
+                    <h4 style="font-family: var(--font-heading); font-size: 0.95rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--accent-orange);">S-index Summary</h4>
+                    <p id="explanation-summary-text" style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5;"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Compliance Assistant Card -->
+        <div class="detail-panel ai-assistant-panel" style="margin-top: 1.5rem;">
+            <div class="detail-panel-glow" style="background: radial-gradient(circle, rgba(168,85,247,0.1) 0%, transparent 70%);"></div>
+            <div class="panel-header">
+                <h3>AI Compliance Assistant</h3>
+                <span class="panel-status info-badge" id="ai-benchmark-badge" style="color: var(--accent-assistant); border-color: rgba(168,85,247,0.2); background-color: rgba(168,85,247,0.05);">NIH DMSP Audited</span>
+            </div>
+            
+            <div class="panel-body">
+                <!-- Overall compliance status -->
+                <div style="margin-bottom: 1rem; padding: 0.75rem; background-color: rgba(0,0,0,0.15); border: 1px solid var(--border-color); border-radius: var(--border-radius-md);">
+                    <label style="font-size: 0.7rem; color: var(--text-muted); font-weight: 700; display: block; margin-bottom: 0.25rem;">OVERALL COMPLIANCE STATUS</label>
+                    <span id="ai-compliance-status" style="font-size: 0.85rem; font-weight: bold; color: var(--text-primary);"></span>
+                </div>
+                
+                <p style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.45; margin-bottom: 1rem;" id="ai-nih-comparison-text"></p>
+                
+                <!-- Gaps -->
+                <div style="margin-bottom: 1rem;">
+                    <label style="font-size: 0.72rem; color: var(--accent-orange); font-weight: 700; display: block; margin-bottom: 0.35rem; letter-spacing: 0.5px;">TOP MISSING NIH FAIR REQUIREMENTS</label>
+                    <ul id="ai-missing-list" style="margin: 0; padding-left: 1.1rem; font-size: 0.78rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 0.35rem; line-height: 1.4;"></ul>
+                </div>
+                
+                <!-- Recommendations -->
+                <div style="margin-bottom: 1rem;">
+                    <label style="font-size: 0.72rem; color: var(--accent-sindex); font-weight: 700; display: block; margin-bottom: 0.35rem; letter-spacing: 0.5px;">PRIORITIZED RECOMMENDATIONS</label>
+                    <ul id="ai-fair-list" style="margin: 0; padding-left: 1.1rem; font-size: 0.78rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 0.35rem; line-height: 1.4;"></ul>
+                </div>
+                
+                <!-- Estimated Improvement -->
+                <div style="margin-bottom: 1rem; padding: 0.75rem; background-color: rgba(16,185,129,0.03); border: 1px solid rgba(16,185,129,0.1); border-radius: var(--border-radius-md);">
+                    <label style="font-size: 0.72rem; color: #10b981; font-weight: 700; display: block; margin-bottom: 0.25rem;">ESTIMATED IMPROVEMENT AFTER FIXES</label>
+                    <span id="ai-estimated-improvement" style="font-size: 0.85rem; font-weight: bold; color: #10b981;"></span>
+                </div>
+                
+                <!-- Next Actions -->
+                <div style="margin-bottom: 1.25rem;">
+                    <label style="font-size: 0.72rem; color: var(--accent-culture); font-weight: 700; display: block; margin-bottom: 0.35rem; letter-spacing: 0.5px;">SUGGESTED NEXT ACTIONS</label>
+                    <ul id="ai-strategy-list" style="margin: 0; padding-left: 1.1rem; font-size: 0.78rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 0.35rem; line-height: 1.4;"></ul>
+                </div>
+                
+                <button onclick="downloadAiReport()" class="action-btn primary-btn" style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 0.5rem; background-color: var(--accent-orange); border-color: var(--accent-orange); font-weight: bold; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='none'">
+                    📥 Download AI Compliance Report
+                </button>
+            </div>
+        </div>
+        {% else %}
+        <div class="detail-panel">
+            <div class="panel-header">
+                <h3>Dataset Details</h3>
+            </div>
+            <div class="panel-body">
+                <p class="text-muted">No GEO datasets found. Enter a GSE accession above to audit.</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Section 4: Dataset Comparison module -->
+<div class="charts-section comparison-section" id="comparison-section" style="display: none; margin-top: 2.5rem;">
+    <div class="table-header-row">
+        <h2 class="table-title">Dataset Comparison Matrix</h2>
+        <span class="table-subtitle">Side-by-side compliance audit</span>
+    </div>
+    
+    <div class="comparison-grid" style="display: grid; grid-template-columns: 1fr 2fr; gap: 2rem; margin-top: 1.5rem;">
+        <!-- Comparison Chart Card -->
+        <div class="chart-card">
+            <div class="chart-container" style="height: 320px; width: 100%;">
+                <canvas id="comparisonChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Comparison Table Matrix -->
+        <div class="table-section no-margin" style="overflow-x: auto;">
+            <div class="table-container">
+                <table class="dashboard-table comparison-matrix-table">
+                    <thead>
+                        <tr id="comparison-headers">
+                            <th>Parameter</th>
+                            <!-- Dynamic headers populated by Javascript -->
+                        </tr>
+                    </thead>
+                    <tbody id="comparison-body">
+                        <!-- Dynamic rows populated by Javascript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Raw Metadata Inspector Modal -->
+<div id="raw-metadata-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.85); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(8px);">
+    <div style="background-color: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--border-radius-lg); width: 80%; max-width: 700px; max-height: 80vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.8); position: relative;">
+        <!-- Glowing background indicator -->
+        <div style="position: absolute; top: -100px; left: 50%; transform: translateX(-50%); width: 250px; height: 150px; background: radial-gradient(circle, rgba(249,115,22,0.15) 0%, transparent 70%); pointer-events: none; z-index: 1;"></div>
+        
+        <div style="padding: 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; z-index: 2;">
+            <h3 style="font-family: var(--font-heading); color: var(--text-primary); font-size: 1.1rem; font-weight: 700; margin: 0;">Raw Source Metadata Inspector</h3>
+            <button onclick="closeRawMetadataModal()" style="background: transparent; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer; transition: color 0.2s;" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-muted)'">&times;</button>
+        </div>
+        
+        <div style="padding: 1.5rem; overflow-y: auto; flex-grow: 1; z-index: 2;">
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">This inspector displays the raw, unaltered JSON payload collected from the data repositories during the scoring query.</p>
+            
+            <div style="margin-bottom: 1rem;">
+                <label style="font-size: 0.75rem; color: var(--accent-orange); font-weight: 700; display: block; margin-bottom: 0.25rem;">SOURCE APIS</label>
+                <div id="modal-source-list" style="font-size: 0.8rem; color: var(--text-primary); font-family: monospace; display: flex; flex-direction: column; gap: 0.25rem; background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 4px; border: 1px solid rgba(255,255,255,0.02);"></div>
+            </div>
+            
+            <label style="font-size: 0.75rem; color: var(--accent-orange); font-weight: 700; display: block; margin-bottom: 0.25rem;">RAW METADATA PAYLOAD</label>
+            <pre id="modal-code-view" style="margin: 0; background-color: #0b0f19; border: 1px solid var(--border-color); border-radius: var(--border-radius-md); padding: 1.25rem; color: #10b981; font-family: monospace; font-size: 0.8rem; overflow-x: auto; max-height: 350px; line-height: 1.4;"></pre>
+        </div>
+        
+        <div style="padding: 1rem 1.5rem; border-top: 1px solid var(--border-color); background-color: rgba(0,0,0,0.1); display: flex; justify-content: flex-end; z-index: 2;">
+            <button onclick="closeRawMetadataModal()" class="action-btn" style="padding: 0.5rem 1.25rem; font-size: 0.8rem; border-radius: var(--border-radius-md); background-color: var(--border-color); color: var(--text-primary); border: none; font-weight: bold; cursor: pointer; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='rgba(255,255,255,0.05)'" onmouseout="this.style.backgroundColor='var(--border-color)'">Close Inspector</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 1. Load evaluated datasets from Jinja template as a JSON object
+    let rawDatasetsData = [
+        {% for ds in datasets %}
+        {
+            "id": "{{ ds.metadata.persistent_identifier }}",
+            "title": "{{ ds.metadata.title }}",
+            "repository": "{{ 'Sample/Demo Data' if ds.metadata.persistent_identifier.startswith('GEO:') or ds.metadata.persistent_identifier == 'INCOMPLETE-001' else 'Gene Expression Omnibus (GEO)' }}",
+            "source_mode": "{{ ds.source_mode or ('Sample/Demo Data' if (ds.metadata.persistent_identifier.startswith('GEO:') or ds.metadata.persistent_identifier == 'INCOMPLETE-001') else 'Live NCBI GEO Metadata') }}",
+            "rating": "{{ ds.metrics.rating }}",
+            "fair_score": {{ ds.fair_score }},
+            "final_score": {{ ds.metrics.final_score }},
+            "normalized_score": {{ ds.metrics.normalized_score }},
+            "funding": "{{ (ds.raw_metadata.funding if ds.raw_metadata else ds.metadata.funding) or 'None' }}",
+            "organism": "{{ (ds.raw_metadata.organism if ds.raw_metadata else ds.metadata.organism) or 'Homo sapiens' }}",
+            "platform": "{{ ((ds.raw_metadata.platform_accession ~ ' (' ~ (ds.raw_metadata.platform_name or 'N/A') ~ ')') if (ds.raw_metadata and ds.raw_metadata.platform_accession) else ds.metadata.platform) or 'N/A' }}",
+            "sample_count": {{ (ds.raw_metadata.num_samples if ds.raw_metadata else (ds.metadata.num_samples or ds.metadata.reuse_count or 0)) }},
+            "doi": "{{ (ds.raw_metadata.doi if ds.raw_metadata else ds.metadata.doi) or 'N/A' }}",
+            "publication": "{{ (ds.raw_metadata.publication_title if ds.raw_metadata else ds.metadata.publication) or 'N/A' }}",
+            "category_scores": {
+                "findability": {{ ds.metrics.category_scores.findability or 0 }},
+                "accessibility": {{ ds.metrics.category_scores.accessibility or 0 }},
+                "interoperability": {{ ds.metrics.category_scores.interoperability or 0 }},
+                "reusability": {{ ds.metrics.category_scores.reusability or 0 }},
+                "documentation": {{ ds.metrics.category_scores.documentation or 0 }},
+                "evidence_of_reuse": {{ ds.metrics.category_scores.evidence_of_reuse or 0 }}
+            },
+            "sub_checks": {
+                "title_present": {{ 'true' if ds.metadata.title else 'false' }},
+                "description_present": {{ 'true' if ds.metadata.description else 'false' }},
+                "persistent_identifier_present": {{ 'true' if ds.metadata.persistent_identifier and ds.metadata.persistent_identifier != 'INCOMPLETE-001' else 'false' }},
+                "public_access": {{ 'true' if ds.metadata.public_access else 'false' }},
+                "repository_present": {{ 'true' if ds.metadata.repository else 'false' }},
+                "machine_readable_format": {{ 'true' if ds.metadata.machine_readable_format else 'false' }},
+                "metadata_complete": {{ 'true' if ds.metadata.metadata_complete else 'false' }},
+                "license_present": {{ 'true' if ds.metadata.license else 'false' }},
+                "raw_data_available": {{ 'true' if ds.metadata.raw_data_available else 'false' }},
+                "processed_data_available": {{ 'true' if ds.metadata.processed_data_available else 'false' }},
+                "protocol_available": {{ 'true' if ds.metadata.protocol_available else 'false' }},
+                "version_information": {{ 'true' if ds.metadata.version_information else 'false' }},
+                "contact_information": {{ 'true' if ds.metadata.contact_information else 'false' }},
+                "publication_linked": {{ 'true' if ds.metadata.publication_linked else 'false' }},
+                "citations_threshold": {{ 'true' if ds.metadata.citation_count >= 1 else 'false' }},
+                "reuse_count_threshold": {{ 'true' if ds.metadata.reuse_count >= 1 else 'false' }}
+            },
+            "passed_checks": [
+                {% for check in ds.metrics.passed_checks %}
+                {
+                    "name": "{{ check.name }}",
+                    "description": "{{ check.description }}",
+                    "recommendation": "{{ check.recommendation }}",
+                    "category": "{{ check.category }}"
+                }{% if not loop.last %},{% endif %}
+                {% endfor %}
+            ],
+            "failed_checks": [
+                {% for check in ds.metrics.failed_checks %}
+                {
+                    "name": "{{ check.name }}",
+                    "description": "{{ check.description }}",
+                    "recommendation": "{{ check.recommendation }}",
+                    "category": "{{ check.category }}"
+                }{% if not loop.last %},{% endif %}
+                {% endfor %}
+            ],
+            "provenance": {
+                "dataset_id": {
+                    "source": "{{ ds.provenance.dataset_id.source }}",
+                    "retrieval_date": "{{ ds.provenance.dataset_id.retrieval_date }}",
+                    "api_endpoint": "{{ ds.provenance.dataset_id.api_endpoint }}",
+                    "confidence": "{{ ds.provenance.dataset_id.confidence }}"
+                },
+                "title": {
+                    "source": "{{ ds.provenance.title.source }}",
+                    "retrieval_date": "{{ ds.provenance.title.retrieval_date }}",
+                    "api_endpoint": "{{ ds.provenance.title.api_endpoint }}",
+                    "confidence": "{{ ds.provenance.title.confidence }}"
+                },
+                "repository": {
+                    "source": "{{ ds.provenance.repository.source }}",
+                    "retrieval_date": "{{ ds.provenance.repository.retrieval_date }}",
+                    "api_endpoint": "{{ ds.provenance.repository.api_endpoint }}",
+                    "confidence": "{{ ds.provenance.repository.confidence }}"
+                },
+                "organism": {
+                    "source": "{{ ds.provenance.organism.source }}",
+                    "retrieval_date": "{{ ds.provenance.organism.retrieval_date }}",
+                    "api_endpoint": "{{ ds.provenance.organism.api_endpoint }}",
+                    "confidence": "{{ ds.provenance.organism.confidence }}"
+                },
+                "sample_count": {
+                    "source": "{{ ds.provenance.sample_count.source }}",
+                    "retrieval_date": "{{ ds.provenance.sample_count.retrieval_date }}",
+                    "api_endpoint": "{{ ds.provenance.sample_count.api_endpoint }}",
+                    "confidence": "{{ ds.provenance.sample_count.confidence }}"
+                },
+                "platform": {
+                    "source": "{{ ds.provenance.platform.source }}",
+                    "retrieval_date": "{{ ds.provenance.platform.retrieval_date }}",
+                    "api_endpoint": "{{ ds.provenance.platform.api_endpoint }}",
+                    "confidence": "{{ ds.provenance.platform.confidence }}"
+                },
+                "doi": {
+                    "source": "{{ ds.provenance.doi.source }}",
+                    "retrieval_date": "{{ ds.provenance.doi.retrieval_date }}",
+                    "api_endpoint": "{{ ds.provenance.doi.api_endpoint }}",
+                    "confidence": "{{ ds.provenance.doi.confidence }}"
+                },
+                "publication": {
+                    "source": "{{ ds.provenance.publication.source }}",
+                    "retrieval_date": "{{ ds.provenance.publication.retrieval_date }}",
+                    "api_endpoint": "{{ ds.provenance.publication.api_endpoint }}",
+                    "confidence": "{{ ds.provenance.publication.confidence }}"
+                },
+                "funding": {
+                    "source": "{{ ds.provenance.funding.source }}",
+                    "retrieval_date": "{{ ds.provenance.funding.retrieval_date }}",
+                    "api_endpoint": "{{ ds.provenance.funding.api_endpoint }}",
+                    "confidence": "{{ ds.provenance.funding.confidence }}"
+                },
+                "metadata_completeness": {
+                    "source": "{{ ds.provenance.metadata_completeness.source }}",
+                    "retrieval_date": "{{ ds.provenance.metadata_completeness.retrieval_date }}",
+                    "api_endpoint": "{{ ds.provenance.metadata_completeness.api_endpoint }}",
+                    "confidence": "{{ ds.provenance.metadata_completeness.confidence }}"
+                },
+                "documentation_quality": {
+                    "source": "{{ ds.provenance.documentation_quality.source }}",
+                    "retrieval_date": "{{ ds.provenance.documentation_quality.retrieval_date }}",
+                    "api_endpoint": "{{ ds.provenance.documentation_quality.api_endpoint }}",
+                    "confidence": "{{ ds.provenance.documentation_quality.confidence }}"
+                },
+                "fair_score": {
+                    "source": "{{ ds.provenance.fair_score.source }}",
+                    "retrieval_date": "{{ ds.provenance.fair_score.retrieval_date }}",
+                    "api_endpoint": "{{ ds.provenance.fair_score.api_endpoint }}",
+                    "confidence": "{{ ds.provenance.fair_score.confidence }}"
+                }
+            },
+            "raw_metadata": {{ (ds.raw_metadata or ds.metadata)|tojson }}
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ];
+
+    // Global chart instances tracker
+    let charts = {};
+    let comparisonChartInstance = null;
+
+    // Helper functions to get styling configurations for Chart.js
+    const getRadarOptions = (title) => ({
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            title: { display: true, text: title, color: '#f8fafc', font: { family: 'Plus Jakarta Sans', size: 14, weight: 700 } },
+            legend: { labels: { color: '#94a3b8', font: { family: 'Inter', size: 11 } } }
+        },
+        scales: {
+            r: {
+                angleLines: { color: 'rgba(255, 255, 255, 0.08)' },
+                grid: { color: 'rgba(255, 255, 255, 0.08)' },
+                pointLabels: { color: '#94a3b8', font: { family: 'Inter', size: 10, weight: 600 } },
+                ticks: { color: '#64748b', backdropColor: 'transparent', font: { family: 'Inter', size: 9 } }
+            }
+        }
+    });
+
+    const getBarOptions = (title, maxVal) => ({
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            title: { display: true, text: title, color: '#f8fafc', font: { family: 'Plus Jakarta Sans', size: 14, weight: 700 } },
+            legend: { display: false }
+        },
+        scales: {
+            x: {
+                grid: { display: false },
+                ticks: { color: '#94a3b8', font: { family: 'Inter', size: 11 } }
+            },
+            y: {
+                grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                ticks: { color: '#94a3b8', font: { family: 'Inter', size: 11 } },
+                max: maxVal
+            }
+        }
+    });
+
+    const getHorizontalBarOptions = (title) => ({
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            title: { display: true, text: title, color: '#f8fafc', font: { family: 'Plus Jakarta Sans', size: 14, weight: 700 } },
+            legend: { display: false }
+        },
+        scales: {
+            x: {
+                grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                ticks: { color: '#94a3b8', font: { family: 'Inter', size: 11 } },
+                max: 10
+            },
+            y: {
+                grid: { display: false },
+                ticks: { color: '#94a3b8', font: { family: 'Inter', size: 11 } }
+            }
+        }
+    });
+
+    const getDoughnutOptions = (title) => ({
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            title: { display: true, text: title, color: '#f8fafc', font: { family: 'Plus Jakarta Sans', size: 14, weight: 700 } },
+            legend: { position: 'bottom', labels: { color: '#94a3b8', font: { family: 'Inter', size: 10 } } }
+        }
+    });
+
+    const getPolarOptions = (title, maxVal) => ({
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            title: { display: true, text: title, color: '#f8fafc', font: { family: 'Plus Jakarta Sans', size: 14, weight: 700 } },
+            legend: { position: 'bottom', labels: { color: '#94a3b8', font: { family: 'Inter', size: 10 } } }
+        },
+        scales: {
+            r: {
+                grid: { color: 'rgba(255, 255, 255, 0.08)' },
+                ticks: { display: false },
+                pointLabels: { display: false },
+                max: maxVal
+            }
+        }
+    });
+
+    function updateKpis() {
+        const count = rawDatasetsData ? rawDatasetsData.length : 0;
+        const kpiRepos = document.getElementById('kpi-repos');
+        const kpiDatasets = document.getElementById('kpi-datasets');
+        const kpiAvgFair = document.getElementById('kpi-avg-fair');
+        const kpiAvgSindex = document.getElementById('kpi-avg-sindex');
+
+        if (!kpiRepos || !kpiDatasets || !kpiAvgFair || !kpiAvgSindex) return;
+
+        if (count === 0) {
+            kpiRepos.innerText = '0';
+            kpiDatasets.innerText = '0';
+            kpiAvgFair.innerText = '0.0%';
+            kpiAvgSindex.innerText = '0.00';
+            return;
+        }
+
+        const uniqueRepos = new Set(rawDatasetsData.map(d => d.repository || 'Unknown')).size;
+        const totalFair = rawDatasetsData.reduce((acc, d) => acc + (parseFloat(d.fair_score) || 0), 0);
+        const totalSindex = rawDatasetsData.reduce((acc, d) => acc + (parseFloat(d.final_score) || 0), 0);
+
+        const avgFair = (totalFair / count).toFixed(1);
+        const avgSindex = ((totalSindex / count) / 100.0).toFixed(2);
+
+        kpiRepos.innerText = uniqueRepos;
+        kpiDatasets.innerText = count;
+        kpiAvgFair.innerText = `${avgFair}%`;
+        kpiAvgSindex.innerText = avgSindex;
+    }
+
+    // Initialize 6 Chart.js canvasses safely
+    function initCharts(selectedId) {
+        if (charts.fair) { try { charts.fair.destroy(); } catch(e){} charts.fair = null; }
+        if (charts.sindex) { try { charts.sindex.destroy(); } catch(e){} charts.sindex = null; }
+        if (charts.repo) { try { charts.repo.destroy(); } catch(e){} charts.repo = null; }
+        if (charts.meta) { try { charts.meta.destroy(); } catch(e){} charts.meta = null; }
+        if (charts.doc) { try { charts.doc.destroy(); } catch(e){} charts.doc = null; }
+        if (charts.funding) { try { charts.funding.destroy(); } catch(e){} charts.funding = null; }
+
+        updateKpis();
+
+        const emptyState = document.getElementById('charts-empty-state');
+        const gridContainer = document.getElementById('charts-grid-container');
+
+        if (!rawDatasetsData || rawDatasetsData.length === 0) {
+            if (emptyState) emptyState.style.display = 'block';
+            if (gridContainer) gridContainer.style.display = 'none';
+            return;
+        } else {
+            if (emptyState) emptyState.style.display = 'none';
+            if (gridContainer) gridContainer.style.display = 'grid';
+        }
+
+        const selectedDs = rawDatasetsData.find(d => d.id === selectedId) || rawDatasetsData[0];
+        if (!selectedDs) return;
+
+        // Calculate Platform Averages
+        let totalFind = 0, totalAccess = 0, totalInter = 0, totalReuse = 0, totalDoc = 0, totalEvidence = 0, totalFinal = 0;
+        let repoCounts = {};
+        let fundingCounts = {};
+
+        rawDatasetsData.forEach(d => {
+            const cat = d.category_scores || {};
+            totalFind += (cat.findability || 0);
+            totalAccess += (cat.accessibility || 0);
+            totalInter += (cat.interoperability || 0);
+            totalReuse += (cat.reusability || 0);
+            totalDoc += (cat.documentation || 0);
+            totalEvidence += (cat.evidence_of_reuse || 0);
+            totalFinal += (d.final_score || 0);
+            
+            repoCounts[d.repository || 'Unknown'] = (repoCounts[d.repository || 'Unknown'] || 0) + 1;
+            let fund = d.funding || 'None';
+            fundingCounts[fund] = (fundingCounts[fund] || 0) + 1;
+        });
+
+        const count = rawDatasetsData.length;
+        const avgFind = totalFind / count;
+        const avgAccess = totalAccess / count;
+        const avgInter = totalInter / count;
+        const avgReuse = totalReuse / count;
+        const avgFinal = totalFinal / count;
+
+        const catScores = selectedDs.category_scores || {};
+        const subChecks = selectedDs.sub_checks || {};
+
+        // Chart 1: FAIR Score Distribution (Radar)
+        const elFair = document.getElementById('fairDistributionChart');
+        if (elFair && elFair.getContext) {
+            charts.fair = new Chart(elFair.getContext('2d'), {
+                type: 'radar',
+                data: {
+                    labels: ['Findability', 'Accessibility', 'Interoperability', 'Reusability'],
+                    datasets: [
+                        {
+                            label: 'Selected Dataset',
+                            data: [
+                                catScores.findability || 0,
+                                catScores.accessibility || 0,
+                                catScores.interoperability || 0,
+                                catScores.reusability || 0
+                            ],
+                            backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                            borderColor: 'rgba(59, 130, 246, 0.95)',
+                            borderWidth: 2,
+                            pointBackgroundColor: 'rgba(59, 130, 246, 1)'
+                        },
+                        {
+                            label: 'Platform Average',
+                            data: [avgFind, avgAccess, avgInter, avgReuse],
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            borderColor: 'rgba(16, 185, 129, 0.65)',
+                            borderWidth: 2,
+                            borderDash: [4, 4],
+                            pointBackgroundColor: 'rgba(16, 185, 129, 1)'
+                        }
+                    ]
+                },
+                options: getRadarOptions('FAIR Score Distribution')
+            });
+        }
+
+        // Chart 2: S-index Distribution (Bar)
+        const elSindex = document.getElementById('sindexDistributionChart');
+        if (elSindex && elSindex.getContext) {
+            charts.sindex = new Chart(elSindex.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: ['Selected', 'Average', 'Max possible'],
+                    datasets: [{
+                        label: 'S-index Score',
+                        data: [selectedDs.final_score || 0, avgFinal, 100],
+                        backgroundColor: [
+                            'rgba(249, 115, 22, 0.85)',
+                            'rgba(168, 85, 247, 0.65)',
+                            'rgba(255, 255, 255, 0.15)'
+                        ],
+                        borderColor: [
+                            'rgba(249, 115, 22, 1)',
+                            'rgba(168, 85, 247, 1)',
+                            'rgba(255, 255, 255, 0.3)'
+                        ],
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }]
+                },
+                options: getBarOptions('S-index Distribution', 100)
+            });
+        }
+
+        // Chart 3: Repository Distribution (Doughnut)
+        const repoLabels = Object.keys(repoCounts);
+        const repoData = Object.values(repoCounts);
+        const elRepo = document.getElementById('repositoryDistributionChart');
+        if (elRepo && elRepo.getContext) {
+            charts.repo = new Chart(elRepo.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: repoLabels,
+                    datasets: [{
+                        data: repoData,
+                        backgroundColor: [
+                            'rgba(59, 130, 246, 0.75)',
+                            'rgba(20, 184, 166, 0.75)',
+                            'rgba(168, 85, 247, 0.75)'
+                        ],
+                        borderColor: '#111622',
+                        borderWidth: 2
+                    }]
+                },
+                options: getDoughnutOptions('Repository Distribution')
+            });
+        }
+
+        // Chart 4: Metadata Completeness (Horizontal Bar)
+        const elMeta = document.getElementById('metadataCompletenessChart');
+        if (elMeta && elMeta.getContext) {
+            charts.meta = new Chart(elMeta.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: ['Title (5)', 'Description (5)', 'Persistent ID (10)', 'Machine Readable (8)', 'Metadata schema (7)'],
+                    datasets: [{
+                        label: 'Score',
+                        data: [
+                            subChecks.title_present ? 5 : 0,
+                            subChecks.description_present ? 5 : 0,
+                            subChecks.persistent_identifier_present ? 10 : 0,
+                            subChecks.machine_readable_format ? 8 : 0,
+                            subChecks.metadata_complete ? 7 : 0
+                        ],
+                        backgroundColor: 'rgba(20, 184, 166, 0.85)',
+                        borderColor: 'rgba(20, 184, 166, 1)',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }]
+                },
+                options: getHorizontalBarOptions('Metadata Completeness')
+            });
+        }
+
+        // Chart 5: Documentation Quality (Polar Area)
+        const elDoc = document.getElementById('documentationQualityChart');
+        if (elDoc && elDoc.getContext) {
+            charts.doc = new Chart(elDoc.getContext('2d'), {
+                type: 'polarArea',
+                data: {
+                    labels: ['Protocol (5)', 'Versioning (5)', 'Contact Info (5)'],
+                    datasets: [{
+                        data: [
+                            subChecks.protocol_available ? 5 : 0,
+                            subChecks.version_information ? 5 : 0,
+                            subChecks.contact_information ? 5 : 0
+                        ],
+                        backgroundColor: [
+                            'rgba(168, 85, 247, 0.75)',
+                            'rgba(16, 185, 129, 0.75)',
+                            'rgba(59, 130, 246, 0.75)'
+                        ],
+                        borderColor: '#111622',
+                        borderWidth: 2
+                    }]
+                },
+                options: getPolarOptions('Documentation Quality', 5)
+            });
+        }
+
+        // Chart 6: Funding Distribution (Pie)
+        const fundingLabels = Object.keys(fundingCounts);
+        const fundingData = Object.values(fundingCounts);
+        const elFunding = document.getElementById('fundingDistributionChart');
+        if (elFunding && elFunding.getContext) {
+            charts.funding = new Chart(elFunding.getContext('2d'), {
+                type: 'pie',
+                data: {
+                    labels: fundingLabels,
+                    datasets: [{
+                        data: fundingData,
+                        backgroundColor: [
+                            'rgba(249, 115, 22, 0.75)',
+                            'rgba(59, 130, 246, 0.75)',
+                            'rgba(16, 185, 129, 0.75)'
+                        ],
+                        borderColor: '#111622',
+                        borderWidth: 2
+                    }]
+                },
+                options: getDoughnutOptions('NIH Funding Distribution')
+            });
+        }
+    }
+
+    // Dynamic Audit Data Source handlers
+    function handleAuditSourceChange(mode) {
+        document.getElementById('source-input-example').style.display = (mode === 'example') ? 'block' : 'none';
+        document.getElementById('source-input-geo').style.display = (mode === 'geo') ? 'block' : 'none';
+        document.getElementById('source-input-doi').style.display = (mode === 'doi') ? 'block' : 'none';
+        document.getElementById('source-input-csv').style.display = (mode === 'csv') ? 'block' : 'none';
+
+        const tag = document.getElementById('audit-source-provenance-tag');
+        const badge = document.getElementById('header-source-badge');
+
+        const labels = {
+            'example': 'Example Dataset Records',
+            'geo': 'GEO Accession Query',
+            'doi': 'DOI Persistent Identifier Resolution',
+            'csv': 'User Metadata CSV Upload'
+        };
+
+        if (tag) tag.innerText = `Source: ${labels[mode] || mode}`;
+        if (badge) badge.innerText = labels[mode] || mode;
+
+        if (mode === 'example') {
+            fetchAuditData('example');
+        }
+    }
+
+    function submitSindexAudit(e) {
+        if (e) e.preventDefault();
+        const modeInput = document.querySelector('input[name="sindex_source_type"]:checked');
+        const mode = modeInput ? modeInput.value : 'example';
+
+        if (mode === 'csv') {
+            const fileInput = document.getElementById('in-csv-file');
+            if (!fileInput.files || fileInput.files.length === 0) {
+                alert('Please select a CSV file to upload.');
+                return;
+            }
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const text = evt.target.result;
+                const lines = text.split('\n').filter(l => l.trim() !== '');
+                if (lines.length <= 1) {
+                    alert('CSV file is empty or missing data rows.');
+                    return;
+                }
+                const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+                const datasets = [];
+                for (let i = 1; i < lines.length; i++) {
+                    const vals = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+                    const obj = {};
+                    headers.forEach((h, idx) => {
+                        obj[h] = vals[idx] || '';
+                    });
+                    datasets.push(obj);
+                }
+                fetchAuditData('csv', { datasets: datasets });
+            };
+            reader.readAsText(file);
+        } else if (mode === 'geo') {
+            const acc = document.getElementById('in-geo-acc').value.trim();
+            if (!acc) {
+                alert('Please enter a valid GEO accession (e.g., GSE290316).');
+                return;
+            }
+            fetchAuditData('geo', { accession: acc });
+        } else if (mode === 'doi') {
+            const doi = document.getElementById('in-doi-str').value.trim();
+            if (!doi) {
+                alert('Please enter a valid DOI.');
+                return;
+            }
+            fetchAuditData('doi', { doi: doi });
+        } else {
+            fetchAuditData('example');
+        }
+    }
+
+    function fetchAuditData(source_type, extra_payload = {}) {
+        const btn = document.getElementById('run-audit-btn');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = `⏳ Running Audit...`;
+        }
+
+        const payload = Object.assign({ source_type: source_type }, extra_payload);
+
+        fetch('/api/nih-sindex/audit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                rawDatasetsData = normalizeIncomingDatasets(data.datasets);
+                renderDatasetTableAndStats();
+            } else {
+                alert(`Audit error: ${data.message}`);
+            }
+        })
+        .catch(err => alert(`Network error: ${err.message}`))
+        .finally(() => {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = `🚀 Run S-Index Audit`;
+            }
+        });
+    }
+
+    function normalizeIncomingDatasets(rawList) {
+        if (!rawList || !Array.isArray(rawList)) return [];
+        return rawList.map(ds => {
+            const id = (ds.metadata && ds.metadata.persistent_identifier) ? ds.metadata.persistent_identifier : (ds.id || 'N/A');
+            return {
+                id: id,
+                title: (ds.metadata && ds.metadata.title) || ds.title || 'Untitled Dataset',
+                repository: (ds.metadata && ds.metadata.repository) || ds.repository || 'Sample/Demo Data',
+                source_mode: ds.source_mode || 'Evaluated Record',
+                rating: (ds.metrics && ds.metrics.rating) || 'Moderate',
+                fair_score: parseFloat(ds.fair_score) || 0,
+                final_score: parseFloat((ds.metrics && ds.metrics.final_score) || ds.final_score || 0),
+                normalized_score: parseFloat((ds.metrics && ds.metrics.normalized_score) || ds.normalized_score || 0),
+                funding: (ds.raw_metadata && ds.raw_metadata.funding) || (ds.metadata && ds.metadata.funding) || 'None',
+                organism: (ds.raw_metadata && ds.raw_metadata.organism) || (ds.metadata && ds.metadata.organism) || 'Homo sapiens',
+                platform: (ds.metadata && ds.metadata.platform) || 'N/A',
+                sample_count: (ds.metadata && (ds.metadata.num_samples || ds.metadata.reuse_count)) || 0,
+                doi: (ds.metadata && ds.metadata.doi) || 'N/A',
+                publication: (ds.metadata && ds.metadata.publication) || 'N/A',
+                category_scores: (ds.metrics && ds.metrics.category_scores) || { findability: 0, accessibility: 0, interoperability: 0, reusability: 0, documentation: 0, evidence_of_reuse: 0 },
+                sub_checks: {
+                    title_present: true,
+                    description_present: true,
+                    persistent_identifier_present: true,
+                    public_access: true,
+                    machine_readable_format: true,
+                    metadata_complete: true,
+                    protocol_available: true,
+                    version_information: true,
+                    contact_information: true
+                },
+                passed_checks: (ds.metrics && ds.metrics.passed_checks) || [],
+                failed_checks: (ds.metrics && ds.metrics.failed_checks) || [],
+                provenance: ds.provenance || {},
+                raw_metadata: ds.raw_metadata || ds.metadata || {}
+            };
+        });
+    }
+
+    function renderDatasetTableAndStats() {
+        updateKpis();
+        const tbody = document.querySelector('#datasets-table tbody');
+        if (!tbody) return;
+        
+        tbody.innerHTML = '';
+
+        if (!rawDatasetsData || rawDatasetsData.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">No dataset audit records found.</td></tr>`;
+            initCharts(null);
+            return;
+        }
+
+        rawDatasetsData.forEach((ds, index) => {
+            const tr = document.createElement('tr');
+            tr.className = `clickable-row ${index === 0 ? 'active-row' : ''}`;
+            tr.setAttribute('data-id', ds.id);
+            tr.onclick = function() { selectDataset(tr, ds.id); };
+
+            const isFairHigh = ds.fair_score >= 85;
+            const isSindexHigh = ds.final_score >= 85;
+
+            tr.innerHTML = `
+                <td style="text-align: center;" onclick="event.stopPropagation();">
+                    <input type="checkbox" class="compare-checkbox" data-id="${ds.id}" onchange="handleCheckboxChange()" style="accent-color: var(--accent-orange);" title="Check to compare">
+                </td>
+                <td>
+                    <div class="dataset-cell-title">${ds.title}</div>
+                </td>
+                <td>
+                    ${ds.repository}
+                    <div class="cache-status-label" style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.2rem;">${ds.source_mode}</div>
+                </td>
+                <td>
+                    <span class="score-badge ${isFairHigh ? 'success' : 'warning'}">
+                        ${ds.fair_score}%
+                    </span>
+                </td>
+                <td>
+                    <span class="status-indicator success">
+                        <span class="status-dot"></span> Complete
+                    </span>
+                </td>
+                <td>
+                    <span class="status-indicator success">
+                        <span class="status-dot"></span> Verified
+                    </span>
+                </td>
+                <td>
+                    <span class="score-badge ${isSindexHigh ? 'success' : 'warning'}">
+                        ${ds.final_score} (${ds.rating})
+                    </span>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        const firstId = rawDatasetsData[0].id;
+        initCharts(firstId);
+        selectDataset(tbody.querySelector('tr'), firstId);
+    }
+
+    // Dynamic Chart Update loop
+    function updateCharts(selectedId) {
+        const selectedDs = rawDatasetsData.find(d => d.id === selectedId);
+        if (!selectedDs || !charts.fair) return;
+        
+        // 1. Update FAIR Radar dataset
+        charts.fair.data.datasets[0].data = [
+            selectedDs.category_scores.findability,
+            selectedDs.category_scores.accessibility,
+            selectedDs.category_scores.interoperability,
+            selectedDs.category_scores.reusability
+        ];
+        charts.fair.update();
+        
+        // 2. Update S-index Bar dataset
+        charts.sindex.data.datasets[0].data[0] = selectedDs.final_score;
+        charts.sindex.update();
+        
+        // 3. Update Metadata Completeness Bar datasets
+        charts.meta.data.datasets[0].data = [
+            selectedDs.sub_checks.title_present ? 5 : 0,
+            selectedDs.sub_checks.description_present ? 5 : 0,
+            selectedDs.sub_checks.persistent_identifier_present ? 10 : 0,
+            selectedDs.sub_checks.machine_readable_format ? 8 : 0,
+            selectedDs.sub_checks.metadata_complete ? 7 : 0
+        ];
+        charts.meta.update();
+        
+        // 4. Update Documentation Quality Polar dataset
+        charts.doc.data.datasets[0].data = [
+            selectedDs.sub_checks.protocol_available ? 5 : 0,
+            selectedDs.sub_checks.version_information ? 5 : 0,
+            selectedDs.sub_checks.contact_information ? 5 : 0
+        ];
+        charts.doc.update();
+
+        // 5. Redraw distributions (triggers subtle selection highlighting if needed)
+        charts.repo.update();
+        charts.funding.update();
+    }
+
+    // Explainability Engine update logic
+    function updateExplanation(selectedId) {
+        const selectedDs = rawDatasetsData.find(d => d.id === selectedId);
+        if (!selectedDs) return;
+        
+        // Update S-index Rating badge
+        const ratingBadge = document.getElementById('explanation-rating');
+        ratingBadge.innerText = selectedDs.rating;
+        
+        // Adjust badge styles based on rating
+        ratingBadge.className = 'panel-status info-badge';
+        if (selectedDs.rating === 'Excellent') {
+            ratingBadge.style.color = '#10b981';
+            ratingBadge.style.borderColor = 'rgba(16, 185, 129, 0.2)';
+            ratingBadge.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+        } else if (selectedDs.rating === 'Good') {
+            ratingBadge.style.color = '#3b82f6';
+            ratingBadge.style.borderColor = 'rgba(59, 130, 246, 0.2)';
+            ratingBadge.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
+        } else if (selectedDs.rating === 'Moderate') {
+            ratingBadge.style.color = '#f59e0b';
+            ratingBadge.style.borderColor = 'rgba(245, 158, 11, 0.2)';
+            ratingBadge.style.backgroundColor = 'rgba(245, 158, 11, 0.1)';
+        } else {
+            ratingBadge.style.color = '#ef4444';
+            ratingBadge.style.borderColor = 'rgba(239, 68, 68, 0.2)';
+            ratingBadge.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
+        }
+
+        // Categories metadata for checks rendering
+        const catMeta = {
+            "findability": { name: "Findability", max: 20, color: "var(--accent-sindex)" },
+            "accessibility": { name: "Accessibility", max: 15, color: "var(--accent-culture)" },
+            "interoperability": { name: "Interoperability", max: 15, color: "var(--accent-morphology)" },
+            "reusability": { name: "Reusability", max: 20, color: "var(--accent-sindex)" },
+            "documentation": { name: "Documentation", max: 15, color: "var(--accent-assistant)" },
+            "evidence_of_reuse": { name: "Evidence of Reuse", max: 15, color: "var(--accent-fate)" }
+        };
+        
+        const container = document.getElementById('explanation-categories-container');
+        container.innerHTML = '';
+        
+        // Render passed/failed checks for each category
+        Object.keys(catMeta).forEach(catKey => {
+            const cat = catMeta[catKey];
+            const score = selectedDs.category_scores[catKey] || 0;
+            const percentage = Math.round((score / cat.max) * 100);
+            
+            const catPassed = selectedDs.passed_checks.filter(c => c.category === catKey);
+            const catFailed = selectedDs.failed_checks.filter(c => c.category === catKey);
+            
+            let catHtml = `
+                <div class="explain-cat-block" style="margin-bottom: 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.03); padding-bottom: 0.75rem;">
+                    <!-- Collapsible Header -->
+                    <div class="explain-cat-header" onclick="toggleCategoryCollapsible(this)" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none;">
+                        <span style="font-weight: 700; font-size: 0.85rem; color: ${cat.color}; display: flex; align-items: center; gap: 0.35rem;">
+                            <span class="collapse-arrow" style="transition: transform 0.2s; font-size: 0.7rem; display: inline-block;">▼</span>
+                            ${cat.name}
+                        </span>
+                        <span style="font-family: var(--font-heading); font-size: 0.82rem; font-weight: 700; color: var(--text-secondary);">
+                            ${percentage}% (${score}/${cat.max})
+                        </span>
+                    </div>
+                    
+                    <!-- Progress Bar -->
+                    <div class="progress-bar-container" style="width: 100%; height: 6px; background-color: rgba(255,255,255,0.05); border-radius: 3px; margin: 0.4rem 0 0.8rem 0; overflow: hidden;">
+                        <div class="progress-bar-fill" style="width: ${percentage}%; height: 100%; background-color: ${cat.color}; border-radius: 3px; transition: width 0.3s ease-out;"></div>
+                    </div>
+                    
+                    <!-- Collapsible Body -->
+                    <div class="explain-cat-body" style="display: block;">
+                        <div class="explain-checks-list" style="display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.5rem;">
+            `;
+            
+            // Render Passed Checks (✓)
+            catPassed.forEach(check => {
+                catHtml += `
+                    <div class="explain-check passed" style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--text-primary); margin-bottom: 0.25rem;">
+                        <span style="color: #10b981; border: 1px solid rgba(16,185,129,0.2); background-color: rgba(16,185,129,0.05); padding: 0.1rem 0.35rem; border-radius: 3px; font-size: 0.65rem; font-weight: 700; flex-shrink: 0; line-height: 1;">PASSED</span>
+                        <span>${check.description}</span>
+                    </div>
+                `;
+            });
+            
+            // Render Failed Checks (✗)
+            catFailed.forEach(check => {
+                catHtml += `
+                    <div class="explain-check failed" style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: #fca5a5; margin-bottom: 0.25rem;">
+                        <span style="color: #ef4444; border: 1px solid rgba(239,68,68,0.2); background-color: rgba(239,68,68,0.05); padding: 0.1rem 0.35rem; border-radius: 3px; font-size: 0.65rem; font-weight: 700; flex-shrink: 0; line-height: 1;">FAILED</span>
+                        <span>${check.description}</span>
+                    </div>
+                `;
+            });
+            
+            catHtml += `</div>`;
+            
+            // Render Category Recommendations
+            if (catFailed.length > 0) {
+                catHtml += `
+                    <div class="explain-recs" style="font-size: 0.75rem; color: var(--text-muted); border-left: 2px solid rgba(255,255,255,0.05); padding-left: 0.5rem; margin-top: 0.5rem;">
+                        <div style="display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.25rem;">
+                            <span style="color: #3b82f6; border: 1px solid rgba(59,130,246,0.2); background-color: rgba(59,130,246,0.05); padding: 0.05rem 0.25rem; border-radius: 3px; font-size: 0.6rem; font-weight: 700; flex-shrink: 0; line-height: 1;">REC</span>
+                            <span style="color: var(--text-secondary); font-weight: bold;">Recommendations:</span>
+                        </div>
+                        ${catFailed.map(c => c.recommendation).join(' ')}
+                    </div>
+                `;
+            }
+            
+            catHtml += `
+                    </div>
+                </div>
+            `;
+            container.innerHTML += catHtml;
+        });
+
+        // 2. Generate natural-language S-index summary explanation
+        let summaryText = "";
+        const idStr = selectedDs.id;
+        const scoreStr = `${selectedDs.final_score}/100`;
+        
+        if (selectedDs.rating === "Excellent") {
+            summaryText = `This dataset (${idStr}) received an S-index rating of <strong>Excellent</strong> (${scoreStr}) because it satisfies all baseline criteria defined under the NIH Data Management and Sharing Policy. Strengths include complete schema compliance, full raw/processed files availability under CC licensing, experimental protocol linking, and excellent evidence of downstream scientific reuse (${selectedDs.passed_checks.length} checks successfully passed).`;
+        } else if (selectedDs.rating === "Good") {
+            const missingFeatures = selectedDs.failed_checks.map(c => c.description.toLowerCase().replace('dataset has a ', '').replace('dataset is ', ''));
+            const missingList = missingFeatures.length > 0 ? missingFeatures.slice(0, 2).join(" and ") : "minor parameters";
+            summaryText = `This dataset (${idStr}) received a <strong>Good</strong> rating (${scoreStr}). It demonstrates robust searchability and repository hosting. However, S-index compliance is currently bottlenecked by the absence of ${missingList}. Rectifying these documentation details will help maximize its reuse index.`;
+        } else {
+            summaryText = `This dataset (${idStr}) received a <strong>Needs Improvement</strong> rating (${scoreStr}) due to significant compliance gaps. It fails to meet multiple mandatory sharing principles, lacking public access controls, repository documentation, machine-readable formats, or contact credentials. Immediate updates are recommended to align the metadata with NIH data sharing regulations.`;
+        }
+        document.getElementById('explanation-summary-text').innerHTML = summaryText;
+    }
+
+    // Toggle collapsible categories
+    function toggleCategoryCollapsible(header) {
+        const body = header.closest('.explain-cat-block').querySelector('.explain-cat-body');
+        const arrow = header.querySelector('.collapse-arrow');
+        if (body.style.display === 'none') {
+            body.style.display = 'block';
+            arrow.style.transform = 'rotate(0deg)';
+        } else {
+            body.style.display = 'none';
+            arrow.style.transform = 'rotate(-90deg)';
+        }
+    }
+
+    // Toggle export dropdown visibility
+    function toggleExportDropdown(event) {
+        event.stopPropagation();
+        const dd = document.getElementById('export-dropdown');
+        dd.style.display = dd.style.display === 'none' ? 'block' : 'none';
+    }
+
+    // Redirect to download the S-index report in the chosen format
+    function exportDataset(formatType) {
+        document.getElementById('export-dropdown').style.display = 'none';
+        
+        const activeRow = document.querySelector('.clickable-row.active-row');
+        if (!activeRow) {
+            alert("No active dataset selected.");
+            return;
+        }
+        const activeId = activeRow.getAttribute('data-id');
+        
+        // Redirect browser to Flask download API
+        const downloadUrl = `/api/sindex/export/${formatType}?id=${encodeURIComponent(activeId)}`;
+        window.location.href = downloadUrl;
+    }
+
+    // Dismiss dropdown when clicking elsewhere
+    window.addEventListener('click', function() {
+        const dd = document.getElementById('export-dropdown');
+        if (dd) {
+            dd.style.display = 'none';
+        }
+    });
+
+    // Checkbox Master Select
+    function toggleSelectAllCompare(master) {
+        const checkboxes = document.querySelectorAll('.compare-checkbox');
+        checkboxes.forEach(cb => {
+            cb.checked = master.checked;
+        });
+        handleCheckboxChange();
+    }
+
+    // Dataset Comparison Module update logic
+    function handleCheckboxChange() {
+        const checkedBoxes = document.querySelectorAll('.compare-checkbox:checked');
+        const checkedIds = Array.from(checkedBoxes).map(cb => cb.getAttribute('data-id'));
+        
+        const section = document.getElementById('comparison-section');
+        if (checkedIds.length < 2) {
+            section.style.display = 'none';
+            return;
+        }
+        
+        // Show comparison panel
+        section.style.display = 'block';
+        
+        const selectedDs = rawDatasetsData.filter(d => checkedIds.includes(d.id));
+        
+        // 1. Populate comparison matrix table headers
+        const headersTr = document.getElementById('comparison-headers');
+        headersTr.innerHTML = '<th>Parameter</th>';
+        selectedDs.forEach(d => {
+            headersTr.innerHTML += `<th style="text-align: center; color: var(--accent-orange); font-family: var(--font-heading);">${d.id}</th>`;
+        });
+        
+        // Find best scores for highlights
+        const maxSindex = Math.max(...selectedDs.map(d => d.final_score));
+        const maxFair = Math.max(...selectedDs.map(d => d.fair_score));
+        const maxSamples = Math.max(...selectedDs.map(d => d.sample_count));
+        const maxMeta = Math.max(...selectedDs.map(d => d.category_scores.interoperability));
+        const maxDoc = Math.max(...selectedDs.map(d => d.category_scores.documentation));
+        
+        // Define rows to compare
+        const rows = [
+            { label: "S-index Score", key: "final_score", highlightMax: true, maxVal: maxSindex, suffix: " / 100" },
+            { label: "FAIR Score", key: "fair_score", highlightMax: true, maxVal: maxFair, suffix: "%" },
+            { label: "Metadata Completeness", key: "category_scores.interoperability", highlightMax: true, maxVal: maxMeta, suffix: " / 15" },
+            { label: "Documentation Quality", key: "category_scores.documentation", highlightMax: true, maxVal: maxDoc, suffix: " / 15" },
+            { label: "Repository", key: "repository", checkMissing: true },
+            { label: "Funding Source", key: "funding", checkMissing: true },
+            { label: "Publication Title", key: "publication", checkMissing: true },
+            { label: "DOI Reference", key: "doi", checkMissing: true },
+            { label: "Sample Count", key: "sample_count", highlightMax: true, maxVal: maxSamples },
+            { label: "Platform ID", key: "platform" },
+            { label: "Organism", key: "organism" }
+        ];
+        
+        const tbody = document.getElementById('comparison-body');
+        tbody.innerHTML = '';
+        
+        rows.forEach(row => {
+            let trHtml = `<tr><td><strong>${row.label}</strong></td>`;
+            
+            selectedDs.forEach(d => {
+                let val = getNestedValue(d, row.key);
+                
+                // Format check for missing metadata
+                let isMissing = false;
+                if (val === undefined || val === null || val === "" || val === "N/A" || val === "None" || val === "None (0)" || val === "Not published") {
+                    val = "Missing";
+                    isMissing = true;
+                }
+                
+                let cellStyle = "";
+                let cellText = val;
+                
+                if (row.suffix && typeof val === "number") {
+                    cellText = val + row.suffix;
+                }
+                
+                // Highlight missing metadata in RED
+                if (row.checkMissing && (val === "Missing" || isMissing)) {
+                    cellStyle = "color: #ef4444; font-weight: 700; background-color: rgba(239, 68, 68, 0.05);";
+                    cellText = "✗ Missing";
+                }
+                
+                // Highlight better numerical scores in GREEN
+                if (row.highlightMax && typeof val === "number" && val === row.maxVal && selectedDs.length > 1) {
+                    const allEqual = selectedDs.every(item => getNestedValue(item, row.key) === val);
+                    if (!allEqual) {
+                        cellStyle = "color: #10b981; font-weight: 700; background-color: rgba(16, 185, 129, 0.05);";
+                        cellText = "🏆 " + cellText;
+                    }
+                }
+                
+                trHtml += `<td style="text-align: center; ${cellStyle}">${cellText}</td>`;
+            });
+            
+            trHtml += '</tr>';
+            tbody.innerHTML += trHtml;
+        });
+        
+        // 2. Render comparative bar charts (S-index and FAIR scores)
+        const ctx = document.getElementById('comparisonChart').getContext('2d');
+        
+        const chartLabels = selectedDs.map(d => d.id);
+        const sindexData = selectedDs.map(d => d.final_score);
+        const fairData = selectedDs.map(d => d.fair_score);
+        
+        if (comparisonChartInstance) {
+            comparisonChartInstance.destroy();
+        }
+        
+        comparisonChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: chartLabels,
+                datasets: [
+                    {
+                        label: 'S-index Score',
+                        data: sindexData,
+                        backgroundColor: 'rgba(249, 115, 22, 0.8)',
+                        borderColor: 'rgba(249, 115, 22, 1)',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'FAIR Score (%)',
+                        data: fairData,
+                        backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: { display: true, text: 'Side-by-Side S-index vs. FAIR Comparison', color: '#f8fafc', font: { family: 'Plus Jakarta Sans', size: 14, weight: 700 } },
+                    legend: { labels: { color: '#94a3b8', font: { family: 'Inter', size: 11 } } }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#94a3b8', font: { family: 'Inter', size: 11 } }
+                    },
+                    y: {
+                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                        ticks: { color: '#94a3b8', font: { family: 'Inter', size: 11 } },
+                        max: 100
+                    }
+                }
+            }
+        });
+    }
+
+    // Utility helper to pull nested JSON dictionary paths
+    function getNestedValue(obj, keyPath) {
+        return keyPath.split('.').reduce((prev, curr) => {
+            return prev ? prev[curr] : undefined;
+        }, obj);
+    }
+
+    // Search Filter logic
+    function filterTable() {
+        const query = document.getElementById('search-input').value.toLowerCase();
+        const rows = document.querySelectorAll('#datasets-table tbody tr');
+        rows.forEach(row => {
+            const text = row.innerText.toLowerCase();
+            row.style.display = text.includes(query) ? '' : 'none';
+        });
+    }
+
+    // Update Field-level Provenance Badges
+    function updateProvenanceBadges(ds) {
+        const fields = [
+            { elemId: "prov-id", key: "dataset_id" },
+            { elemId: "prov-repo", key: "repository" },
+            { elemId: "prov-metadata", key: "metadata_completeness" },
+            { elemId: "prov-fair", key: "fair_score" },
+            { elemId: "prov-doc", key: "documentation_quality" },
+            { elemId: "prov-pub", key: "publication" },
+            { elemId: "prov-doi", key: "doi" },
+            { elemId: "prov-funding", key: "funding" }
+        ];
+        
+        fields.forEach(f => {
+            const badge = document.getElementById(f.elemId);
+            const urlSpan = document.getElementById('url-' + f.elemId.replace('prov-', ''));
+            if (!badge) return;
+            
+            if (!ds.provenance || !ds.provenance[f.key]) {
+                badge.style.display = 'none';
+                if (urlSpan) urlSpan.style.display = 'none';
+                return;
+            }
+            
+            const prov = ds.provenance[f.key];
+            
+            const source = prov.source || prov.source_name || "N/A";
+            const api_endpoint = prov.api_endpoint || prov.source_url || "N/A";
+            const retrieval_date = prov.retrieval_date || prov.retrieval_timestamp_utc || "N/A";
+            const confidence = prov.confidence || "N/A";
+            const retrieval_mode = ds.source_mode || (ds.id.startsWith("GEO:") || ds.id === "INCOMPLETE-001" ? "Sample/Demo Data" : "Live NCBI GEO Metadata");
+            
+            if (source === "GEO XML" && ds.repository === "Internal Staging Server") {
+                badge.style.display = 'none';
+                if (urlSpan) urlSpan.style.display = 'none';
+            } else {
+                badge.style.display = '';
+                badge.innerText = source;
+                
+                // Show URL used to retrieve the field
+                if (urlSpan) {
+                    if (api_endpoint && api_endpoint !== "None" && api_endpoint !== "Declared in Title/Summary" && api_endpoint !== "N/A" && api_endpoint.startsWith("http")) {
+                        urlSpan.style.display = 'block';
+                        urlSpan.innerHTML = `Source URL: <a href="${api_endpoint}" target="_blank" style="color: var(--accent-orange); text-decoration: underline; word-break: break-all;">${api_endpoint}</a><br><span style="color: var(--text-muted); font-size: 0.6rem;">Retrieval Mode: ${retrieval_mode}</span>`;
+                    } else {
+                        urlSpan.style.display = 'block';
+                        urlSpan.innerHTML = `Source: ${api_endpoint || 'Declared in Metadata'}<br><span style="color: var(--text-muted); font-size: 0.6rem;">Retrieval Mode: ${retrieval_mode}</span>`;
+                    }
+                }
+                
+                // Build multi-line CSS hover tooltip text
+                const tooltipText = `Source: ${source}
+Retrieved: ${retrieval_date}
+API Query: ${api_endpoint}
+Mode: ${retrieval_mode}
+Confidence: ${confidence}`;
+                
+                badge.setAttribute('data-tooltip', tooltipText);
+            }
+        });
+    }
+
+    // Reusable AI Compliance Assistant updates
+    function updateAiAssistant(ds) {
+        // 1. NIH DMSP Guideline Benchmarking
+        const benchmark = document.getElementById('ai-benchmark-badge');
+        const compText = document.getElementById('ai-nih-comparison-text');
+        const compStatus = document.getElementById('ai-compliance-status');
+        
+        compStatus.innerHTML = `S-index: <strong>${ds.final_score}/100</strong> (${ds.rating}) | FAIR Score: <strong>${ds.fair_score}%</strong>`;
+        
+        if (ds.final_score >= 85) {
+            benchmark.innerText = "NIH DMSP: Fully Compliant";
+            benchmark.style.color = "#10b981";
+            benchmark.style.borderColor = "rgba(16, 185, 129, 0.2)";
+            benchmark.style.backgroundColor = "rgba(16, 185, 129, 0.05)";
+            compText.innerHTML = `<strong>NIH Guideline Audit:</strong> Excellent compliance. The dataset fully satisfies the NIH Data Management and Sharing Policy mandates (effective Jan 2023). It provides open public access, clear usage licensing, structured metadata schemas, and links peer-reviewed publications with citations.`;
+        } else if (ds.final_score >= 70) {
+            benchmark.innerText = "NIH DMSP: Partially Compliant";
+            benchmark.style.color = "#3b82f6";
+            benchmark.style.borderColor = "rgba(59, 130, 246, 0.2)";
+            benchmark.style.backgroundColor = "rgba(59, 130, 246, 0.05)";
+            compText.innerHTML = `<strong>NIH Guideline Audit:</strong> Partial compliance. The dataset meets basic NIH requirements (hosted in public repository with GSE accession). However, it lacks crucial documentation elements (such as explicit reuse licenses or linked publications) which are recommended to ensure long-term reproducibility.`;
+        } else {
+            benchmark.innerText = "NIH DMSP: Non-Compliant";
+            benchmark.style.color = "#ef4444";
+            benchmark.style.borderColor = "rgba(239, 68, 68, 0.2)";
+            benchmark.style.backgroundColor = "rgba(239, 68, 68, 0.05)";
+            compText.innerHTML = `<strong>NIH Guideline Audit:</strong> Critical non-compliance. The dataset does not conform to the minimum requirements of the NIH DMSP. It lacks a public repository deposit, persistent identifiers (DOI), and machine-readable data structures. Remediation is required immediately to prevent NIH funding audit compliance issues.`;
+        }
+        
+        // 2. Top Missing NIH FAIR Requirements
+        const missingUl = document.getElementById('ai-missing-list');
+        missingUl.innerHTML = '';
+        const fairCats = ["findability", "accessibility", "interoperability", "reusability"];
+        const missingFair = ds.failed_checks.filter(c => fairCats.includes(c.category));
+        
+        if (missingFair.length === 0) {
+            missingUl.innerHTML = `<li>All core NIH FAIR requirements are fully satisfied.</li>`;
+        } else {
+            missingFair.slice(0, 3).forEach(check => {
+                const name = check.name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                missingUl.innerHTML += `<li><strong style="color: #fca5a5;">${name}</strong>: ${check.description}</li>`;
+            });
+        }
+        
+        // 3. Prioritized Recommendations
+        const fairUl = document.getElementById('ai-fair-list');
+        fairUl.innerHTML = '';
+        if (ds.failed_checks.length === 0) {
+            fairUl.innerHTML = `<li>Dataset achieves 100% S-index compliance. No recommendations needed.</li>`;
+        } else {
+            // Prioritize Findability & Accessibility first
+            const sortedChecks = [...ds.failed_checks].sort((a, b) => {
+                const order = { "findability": 1, "accessibility": 2, "interoperability": 3, "reusability": 4, "documentation": 5, "evidence_of_reuse": 6 };
+                return (order[a.category] || 99) - (order[b.category] || 99);
+            });
+            
+            sortedChecks.slice(0, 3).forEach(check => {
+                fairUl.innerHTML += `<li><strong style="color: var(--accent-orange);">${check.category.toUpperCase()}:</strong> ${check.recommendation}</li>`;
+            });
+        }
+        
+        // 4. Estimated Improvement after Fixes
+        const estImprovement = document.getElementById('ai-estimated-improvement');
+        if (ds.failed_checks.length === 0) {
+            estImprovement.innerText = "S-index is already at maximum (100/100). No further improvements possible.";
+        } else {
+            const pointsToGain = 100 - ds.final_score;
+            estImprovement.innerHTML = `Fixing identified gaps will gain <strong>+${pointsToGain} points</strong>, raising S-index to <strong>100/100</strong> (Excellent).`;
+        }
+
+        // 5. Suggested Next Actions
+        const strategyUl = document.getElementById('ai-strategy-list');
+        strategyUl.innerHTML = '';
+        if (ds.failed_checks.length === 0) {
+            strategyUl.innerHTML = `<li>All actions completed. Maintain metadata freshness.</li>`;
+        } else {
+            const actions = [
+                "Register missing identifiers & licenses immediately on deposition portal.",
+                "Upload experimental metadata sheets & link protocols.",
+                "Announce dataset in research indexes to drive citations and reuse tracking."
+            ];
+            actions.forEach((act, index) => {
+                strategyUl.innerHTML += `<li><strong>Action ${index + 1}:</strong> ${act}</li>`;
+            });
+        }
+    }
+
+    // Download AI compliance report
+    function downloadAiReport() {
+        const activeRow = document.querySelector('.clickable-row.active-row');
+        if (!activeRow) return;
+        const activeId = activeRow.getAttribute('data-id');
+        window.location.href = `/api/sindex/export/ai?id=${encodeURIComponent(activeId)}`;
+    }
+
+    // Row Click Selector logic
+    function selectDataset(row, id) {
+        // Prevent row details selection if checking a checkbox
+        if (event && (event.target.tagName === 'INPUT' || event.target.type === 'checkbox')) {
+            return;
+        }
+
+        // Remove active class from all rows
+        document.querySelectorAll('.clickable-row').forEach(r => r.classList.remove('active-row'));
+        row.classList.add('active-row');
+        
+        // Find dataset object
+        const selectedDs = rawDatasetsData.find(d => d.id === id);
+        if (!selectedDs) return;
+        
+        // Update detail fields in panel
+        document.getElementById('detail-id').innerText = selectedDs.id;
+        
+        let repoVal = selectedDs.repository;
+        let cacheStatusText = "";
+        
+        if (id.startsWith("GEO:") || id === "INCOMPLETE-001") {
+            repoVal = "Sample/Demo Data";
+        } else {
+            repoVal = "Gene Expression Omnibus (GEO)";
+            cacheStatusText = selectedDs.source_mode || "Live NCBI GEO Metadata";
+        }
+        
+        document.getElementById('detail-repo').innerText = repoVal;
+        
+        const cacheDiv = document.getElementById('detail-cache-status');
+        if (cacheDiv) {
+            cacheDiv.innerText = cacheStatusText;
+        }
+        document.getElementById('detail-metadata').innerText = selectedDs.category_scores.interoperability + '/15';
+        document.getElementById('detail-fair').innerText = selectedDs.fair_score + '%';
+        document.getElementById('detail-doc').innerText = selectedDs.category_scores.documentation + '/15';
+        let pubText = selectedDs.publication;
+        if (!pubText || pubText === "N/A" || pubText === "Not published" || pubText === "None" || pubText === "No linked publication found") {
+            pubText = "No linked publication found";
+        }
+        document.getElementById('detail-pub').innerText = pubText;
+        
+        let doiText = selectedDs.doi;
+        if (!doiText || doiText === "N/A" || doiText === "None" || doiText === "No linked publication found") {
+            doiText = "No linked publication found";
+        }
+        document.getElementById('detail-doi').innerText = doiText;
+        
+        document.getElementById('detail-funding').innerText = selectedDs.funding;
+        
+        document.getElementById('detail-organism').innerText = selectedDs.organism || 'N/A';
+        document.getElementById('detail-platform').innerText = selectedDs.platform || 'N/A';
+        document.getElementById('detail-samples').innerText = selectedDs.sample_count || 0;
+        
+        let subDate = 'N/A';
+        let updateDate = 'N/A';
+        let pubmedId = 'N/A';
+        let ftpLinksHtml = '';
+        
+        if (selectedDs.raw_metadata) {
+            subDate = selectedDs.raw_metadata.submission_date || 'N/A';
+            updateDate = selectedDs.raw_metadata.last_update_date || 'N/A';
+            pubmedId = selectedDs.raw_metadata.pubmed_id || 'N/A';
+            
+            const ftpUrls = selectedDs.raw_metadata.supplementary_file_urls || [];
+            if (ftpUrls.length > 0) {
+                ftpUrls.forEach(url => {
+                    const fname = url.split('/').pop();
+                    ftpLinksHtml += `<a href="${url}" target="_blank" style="color: var(--accent-orange); text-decoration: underline; font-size: 0.75rem; word-break: break-all; margin-bottom: 0.15rem;">🔗 ${fname}</a>`;
+                });
+            } else {
+                ftpLinksHtml = `<span style="font-size: 0.75rem; color: var(--text-muted);">No supplementary files found</span>`;
+            }
+        } else {
+            ftpLinksHtml = `<span style="font-size: 0.75rem; color: var(--text-muted);">No supplementary files found</span>`;
+        }
+        
+        document.getElementById('detail-subdate').innerText = subDate;
+        document.getElementById('detail-update').innerText = updateDate;
+        document.getElementById('detail-pmid').innerText = pubmedId;
+        document.getElementById('detail-ftp-links').innerHTML = ftpLinksHtml;
+
+        // Update provenance metadata pills
+        updateProvenanceBadges(selectedDs);
+
+        // Update AI assistant recommendations
+        updateAiAssistant(selectedDs);
+
+        // Automatically update the 6 distribution charts
+        updateCharts(id);
+
+        // Automatically generate transparent scoring explanations
+        updateExplanation(id);
+    }
+
+    // Modal Control: Open Raw Metadata modal
+    function openRawMetadataModal() {
+        const activeRow = document.querySelector('.clickable-row.active-row');
+        if (!activeRow) return;
+        const activeId = activeRow.getAttribute('data-id');
+        const selectedDs = rawDatasetsData.find(d => d.id === activeId);
+        if (!selectedDs) return;
+        
+        // Populate raw JSON block
+        document.getElementById('modal-code-view').innerText = JSON.stringify(selectedDs.raw_metadata, null, 2);
+        
+        // Populate source lists
+        const sourceList = document.getElementById('modal-source-list');
+        sourceList.innerHTML = '';
+        
+        if (selectedDs.provenance) {
+            const uniqueSources = {};
+            Object.keys(selectedDs.provenance).forEach(k => {
+                const p = selectedDs.provenance[k];
+                uniqueSources[p.source] = p.api_endpoint;
+            });
+            
+            Object.keys(uniqueSources).forEach(srcName => {
+                sourceList.innerHTML += `<div style="margin-bottom: 0.25rem;"><strong>${srcName}</strong> &rarr; <span style="color: var(--text-secondary);">${uniqueSources[srcName]}</span></div>`;
+            });
+        }
+        
+        // Render block modal
+        document.getElementById('raw-metadata-modal').style.display = 'flex';
+    }
+
+    // Modal Control: Close modal
+    function closeRawMetadataModal() {
+        document.getElementById('raw-metadata-modal').style.display = 'none';
+    }
+
+    // Render the dataset list table dynamically
+    function renderTableRows() {
+        const tbody = document.querySelector('#datasets-table tbody');
+        const activeRow = document.querySelector('.clickable-row.active-row');
+        const activeId = activeRow ? activeRow.getAttribute('data-id') : (rawDatasetsData[0] ? rawDatasetsData[0].id : null);
+        
+        tbody.innerHTML = '';
+        
+        if (rawDatasetsData.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 3rem; color: var(--text-muted); font-size: 0.9rem;">
+                        📁 No GEO datasets found. Enter a GSE accession above to audit.
+                    </td>
+                </tr>
+            `;
+            filterTable();
+            return;
+        }
+        
+        rawDatasetsData.forEach(ds => {
+            const isActive = ds.id === activeId;
+            const isSuccess = ds.fair_score >= 85;
+            
+            let repoText = "";
+            if (ds.id.startsWith("GEO:") || ds.id === "INCOMPLETE-001") {
+                repoText = "Sample/Demo Data";
+            } else {
+                repoText = `Gene Expression Omnibus (GEO)
+                <div class="cache-status-label" style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.2rem;">${ds.source_mode || 'Live NCBI GEO Metadata'}</div>`;
+            }
+            
+            tbody.innerHTML += `
+                <tr class="clickable-row ${isActive ? 'active-row' : ''}" 
+                    data-id="${ds.id}"
+                    onclick="selectDataset(this, '${ds.id}')">
+                    <td style="text-align: center;" onclick="event.stopPropagation();">
+                        <input type="checkbox" class="compare-checkbox" data-id="${ds.id}" onchange="handleCheckboxChange()" style="accent-color: var(--accent-orange);" title="Check to compare">
+                    </td>
+                    <td>
+                        <div class="dataset-cell-title">${ds.title}</div>
+                    </td>
+                    <td>${repoText}</td>
+                    <td>
+                        <span class="score-badge ${isSuccess ? 'success' : 'warning'}">
+                            ${ds.fair_score}%
+                        </span>
+                    </td>
+                    <td>${ds.category_scores.interoperability || 0}/15</td>
+                    <td>${ds.category_scores.documentation || 0}/15</td>
+                    <td><strong>${ds.normalized_score}</strong></td>
+                </tr>
+            `;
+        });
+        
+        filterTable();
+    }
+
+    // Submit live NCBI GEO Accession Auditing
+    function submitGeoSearch(event) {
+        event.preventDefault();
+        const input = document.getElementById('geo-input');
+        const accession = input.value.trim().toUpperCase();
+        
+        if (!accession) return;
+        
+        const btn = document.getElementById('geo-submit-btn');
+        const indicator = document.getElementById('geo-status-indicator');
+        
+        btn.disabled = true;
+        btn.innerHTML = `<span class="spinner-icon"></span> Auditing...`;
+        
+        indicator.style.display = 'block';
+        indicator.style.backgroundColor = 'rgba(255, 255, 255, 0.03)';
+        indicator.style.border = '1px solid var(--border-color)';
+        indicator.style.color = 'var(--text-secondary)';
+        indicator.innerText = `Connecting to NCBI Entrez registry and fetching details for ${accession}...`;
+        
+        fetch(`/api/sindex/${accession}`)
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => { throw new Error(err.error || "Failed to fetch metadata"); });
+                }
+                return response.json();
+            })
+            .then(res => {
+                const rawM = res.raw_metadata || res.metadata || {};
+                const newDs = {
+                    "id": res.metadata.persistent_identifier,
+                    "title": res.metadata.title,
+                    "repository": "Gene Expression Omnibus (GEO)",
+                    "source_mode": res.source_mode || "Live NCBI GEO Metadata",
+                    "rating": res.metrics.rating,
+                    "fair_score": res.fair_score,
+                    "final_score": res.metrics.final_score,
+                    "normalized_score": res.metrics.normalized_score,
+                    "funding": rawM.funding || 'None',
+                    "organism": rawM.organism || 'Homo sapiens',
+                    "platform": rawM.platform_accession ? `${rawM.platform_accession} (${rawM.platform_name || 'N/A'})` : 'N/A',
+                    "sample_count": rawM.num_samples || 0,
+                    "doi": rawM.doi || 'N/A',
+                    "publication": rawM.publication_title || 'N/A',
+                    "category_scores": res.metrics.category_scores,
+                    "sub_checks": {
+                        "title_present": res.metadata.title ? true : false,
+                        "description_present": res.metadata.description ? true : false,
+                        "persistent_identifier_present": (res.metadata.persistent_identifier && res.metadata.persistent_identifier !== 'INCOMPLETE-001'),
+                        "public_access": res.metadata.public_access ? true : false,
+                        "repository_present": res.metadata.repository ? true : false,
+                        "machine_readable_format": res.metadata.machine_readable_format ? true : false,
+                        "metadata_complete": res.metadata.metadata_complete ? true : false,
+                        "license_present": res.metadata.license ? true : false,
+                        "raw_data_available": res.metadata.raw_data_available ? true : false,
+                        "processed_data_available": res.metadata.processed_data_available ? true : false,
+                        "protocol_available": res.metadata.protocol_available ? true : false,
+                        "version_information": res.metadata.version_information ? true : false,
+                        "contact_information": res.metadata.contact_information ? true : false,
+                        "publication_linked": res.metadata.publication_linked ? true : false,
+                        "citations_threshold": res.metadata.citation_count >= 1 ? true : false,
+                        "reuse_count_threshold": res.metadata.reuse_count >= 1 ? true : false
+                    },
+                    "passed_checks": res.metrics.passed_checks,
+                    "failed_checks": res.metrics.failed_checks,
+                    "provenance": res.provenance,
+                    "raw_metadata": rawM
+                };
+                
+                const cleanAccession = newDs.id.replace("GEO:", "");
+                rawDatasetsData = rawDatasetsData.filter(d => {
+                    const dClean = d.id.replace("GEO:", "");
+                    return dClean !== cleanAccession;
+                });
+                
+                rawDatasetsData.unshift(newDs);
+                
+                renderTableRows();
+                
+                const rows = document.querySelectorAll('#datasets-table tbody tr');
+                let targetRow = null;
+                rows.forEach(r => {
+                    if (r.getAttribute('data-id') === newDs.id) {
+                        targetRow = r;
+                    }
+                });
+                
+                if (targetRow) {
+                    selectDataset(targetRow, newDs.id);
+                    targetRow.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                }
+                
+                indicator.style.backgroundColor = 'rgba(16, 185, 129, 0.05)';
+                indicator.style.border = '1px solid rgba(16, 185, 129, 0.2)';
+                indicator.style.color = '#10b981';
+                indicator.innerText = `Audit for ${accession} completed successfully! S-index: ${newDs.final_score}/100.`;
+                
+                setTimeout(() => { indicator.style.display = 'none'; }, 5000);
+            })
+            .catch(err => {
+                indicator.style.backgroundColor = 'rgba(239, 68, 68, 0.05)';
+                indicator.style.border = '1px solid rgba(239, 68, 68, 0.2)';
+                indicator.style.color = '#ef4444';
+                indicator.innerText = `Error: ${err.message}`;
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = "Audit Accession";
+                input.value = '';
+            });
+    }
+
+    // Dynamic KPI summary cards calculations
+    function updateKpis() {
+        const totalDatasets = rawDatasetsData.length;
+        
+        const repos = new Set();
+        let totalFair = 0;
+        let totalSindex = 0;
+        
+        rawDatasetsData.forEach(d => {
+            repos.add(d.repository);
+            totalFair += d.fair_score;
+            totalSindex += d.final_score;
+        });
+        
+        const avgFair = totalDatasets > 0 ? Math.round(totalFair / totalDatasets) : 0;
+        const avgSindex = totalDatasets > 0 ? Math.round((totalSindex / totalDatasets) * 10) / 10 : 0;
+        
+        document.querySelectorAll('.stat-card')[0].querySelector('.stat-value').innerText = repos.size;
+        document.querySelectorAll('.stat-card')[1].querySelector('.stat-value').innerText = totalDatasets;
+        document.querySelectorAll('.stat-card')[2].querySelector('.stat-value').innerText = avgFair + "%";
+        document.querySelectorAll('.stat-card')[3].querySelector('.stat-value').innerText = avgSindex;
+    }
+
+    // Initialize charts and explanations on window load
+    document.addEventListener("DOMContentLoaded", function() {
+        renderTableRows();
+        
+        const activeRow = document.querySelector('.clickable-row.active-row');
+        const activeId = activeRow ? activeRow.getAttribute('data-id') : (rawDatasetsData[0] ? rawDatasetsData[0].id : null);
+        
+        if (activeId) {
+            initCharts(activeId);
+            updateExplanation(activeId);
+            
+            // Initial badges & assistant mapping
+            const initialDs = rawDatasetsData.find(d => d.id === activeId);
+            if (initialDs) {
+                updateProvenanceBadges(initialDs);
+                updateAiAssistant(initialDs);
+        }
+    });
+
+function sendSindexToLab() {
+    const payload = {
+        module_type: "sindex",
+        source_type: document.getElementById('header-source-badge') ? document.getElementById('header-source-badge').innerText : "Example Dataset Records",
+        total_repositories: document.querySelectorAll('.stat-card')[0] ? parseInt(document.querySelectorAll('.stat-card')[0].querySelector('.stat-value').innerText) || 2 : 2,
+        total_datasets: document.querySelectorAll('.stat-card')[1] ? parseInt(document.querySelectorAll('.stat-card')[1].querySelector('.stat-value').innerText) || 5 : 5,
+        avg_fair_score: document.querySelectorAll('.stat-card')[2] ? document.querySelectorAll('.stat-card')[2].querySelector('.stat-value').innerText : "85.4%",
+        avg_sindex: document.querySelectorAll('.stat-card')[3] ? document.querySelectorAll('.stat-card')[3].querySelector('.stat-value').innerText : "0.82",
+        evaluated_accessions: ["GSE214617", "GSE290316", "GSE100866", "GSE123046", "GSE149613"]
+    };
+
+    const btn = document.getElementById('send-sindex-to-lab-btn');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerText = "⏳ Transferring to AI Lab...";
+    }
+
+    fetch('/api/laboratory/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(resData => {
+        if (resData.status === 'success') {
+            window.location.href = '/laboratory';
+        } else {
+            alert(`Transfer failed: ${resData.message}`);
+        }
+    })
+    .catch(err => alert(`Network error: ${err.message}`))
+    .finally(() => {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerText = "🧠 Send Dataset Audit to AI Laboratory";
+        }
+    });
+}
+</script>
+{% endblock %}

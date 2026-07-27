@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+
+{% block title %}CoreAI BIO - Biomedical SaaS Console{% endblock %}
+
+{% block content %}
+<div class="hero-section">
+    <div class="hero-badge">Biomedical AI Platform</div>
+    <h1 class="hero-title">Intelligent Analysis & <span class="text-glow">Lab Orchestration</span></h1>
+    <p class="hero-subtitle">Deploying machine learning models to accelerate biomedical discovery, optimize cell cultures, and automate image analysis.</p>
+</div>
+
+<div class="modules-grid">
+    <!-- Card 1: NIH S-index Dashboard -->
+    <div class="module-card card-sindex">
+        <div class="card-glow"></div>
+        <div class="card-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="20" x2="18" y2="10"></line>
+                <line x1="12" y1="20" x2="12" y2="4"></line>
+                <line x1="6" y1="20" x2="6" y2="14"></line>
+                <path d="M3 20h18"></path>
+                <path d="M3 10l6-6 6 6 6-6" stroke="var(--accent-primary)"></path>
+            </svg>
+        </div>
+        <h2 class="card-title">NIH S-index Dashboard</h2>
+        <p class="card-description">Track scientific publication impact metrics, citation influence, and NIH funding portfolio performance.</p>
+        <a href="/sindex" class="card-btn">Launch Dashboard <span class="arrow">&rarr;</span></a>
+    </div>
+
+    <!-- Card 2: AI Culture Optimizer -->
+    <div class="module-card card-culture">
+        <div class="card-glow"></div>
+        <div class="card-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2v20"></path>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                <circle cx="12" cy="12" r="10" stroke-dasharray="4 4"></circle>
+            </svg>
+        </div>
+        <h2 class="card-title">AI Culture Optimizer</h2>
+        <p class="card-description">Predict optimal nutrient feeds, temperature profiles, and media compositions for cell growth and yield.</p>
+        <a href="/culture" class="card-btn">Launch Optimizer <span class="arrow">&rarr;</span></a>
+    </div>
+
+    <!-- Card 3: Cell Fate Analyzer -->
+    <div class="module-card card-fate">
+        <div class="card-glow"></div>
+        <div class="card-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="6" cy="12" r="3"></circle>
+                <circle cx="18" cy="6" r="3"></circle>
+                <circle cx="18" cy="18" r="3"></circle>
+                <path d="M9 12h3a3 3 0 0 0 3-3V6m0 6a3 3 0 0 0 3 3h3" stroke="var(--accent-primary)"></path>
+                <path d="M12 12l3 3" stroke-width="1.5"></path>
+            </svg>
+        </div>
+        <h2 class="card-title">Cell Fate Analyzer</h2>
+        <p class="card-description">Track stem cell lineage differentiation, predict cell lineage decisions, and study cellular transitions.</p>
+        <a href="/fate" class="card-btn">Launch Analyzer <span class="arrow">&rarr;</span></a>
+    </div>
+
+    <!-- Card 4: Cell Morphology -->
+    <div class="module-card card-morphology">
+        <div class="card-glow"></div>
+        <div class="card-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path>
+                <path d="M12 6a6 6 0 1 0 0 12 6 6 0 0 0 0-12z" stroke-dasharray="3 3"></path>
+                <circle cx="12" cy="12" r="2" fill="currentColor"></circle>
+                <path d="M12 2v4M12 18v4M2 12h4M18 12h4" stroke-width="1.5"></path>
+            </svg>
+        </div>
+        <h2 class="card-title">Cell Morphology</h2>
+        <p class="card-description">Automate cellular segmentation and shape feature extraction from high-throughput microscopy images.</p>
+        <a href="/morphology" class="card-btn">Launch Module <span class="arrow">&rarr;</span></a>
+    </div>
+
+    <!-- Card 5: AI Laboratory Assistant -->
+    <div class="module-card card-assistant">
+        <div class="card-glow"></div>
+        <div class="card-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                <path d="M8 10h.01M12 10h.01M16 10h.01" stroke-width="3" stroke-linecap="round"></path>
+                <path d="M7 6c2-1 6-1 8 0" stroke-width="1.5" stroke="var(--accent-primary)"></path>
+            </svg>
+        </div>
+        <h2 class="card-title">AI Laboratory Assistant</h2>
+        <p class="card-description">Interactive stem cell intelligence explaining platform outputs, volcano plots, UMAP embeddings, and pathways.</p>
+        <a href="/assistant" class="card-btn">Launch Assistant <span class="arrow">&rarr;</span></a>
+    </div>
+
+    <!-- Card 6: Research Report Generator -->
+    <div class="module-card card-report" style="border-color: rgba(56, 189, 248, 0.3);">
+        <div class="card-glow" style="background: radial-gradient(circle at 50% 0%, rgba(56, 189, 248, 0.15), transparent 70%);"></div>
+        <div class="card-icon" style="color: #38bdf8;">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+        </div>
+        <h2 class="card-title">Research Report Generator</h2>
+        <p class="card-description">One-click multi-omics synthesis combining morphology, culture telemetry, cell fate DGE, and AI summaries into exportable HTML/PDF reports.</p>
+        <a href="/report" class="card-btn" style="background: rgba(56, 189, 248, 0.15); border-color: rgba(56, 189, 248, 0.4); color: #38bdf8;">Generate Report <span class="arrow">&rarr;</span></a>
+    </div>
+</div>
+{% endblock %}
