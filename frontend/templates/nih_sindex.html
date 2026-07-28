@@ -301,18 +301,6 @@
 <div class="analytics-layout">
     <!-- Left Column: Search & Table -->
     <div class="analytics-main">
-        <!-- Live GEO Accession Audit Form -->
-        <div class="search-bar-wrapper" style="margin-bottom: 1rem; border: 1px solid rgba(249,115,22,0.3); background-color: rgba(249,115,22,0.02);">
-            <span class="search-icon" style="color: var(--accent-orange);">⚡</span>
-            <form onsubmit="submitGeoSearch(event); return false;" style="display: flex; flex-grow: 1; align-items: center; gap: 0.5rem; width: 100%;">
-                <input type="text" id="geo-input" placeholder="Enter GEO Accession (e.g. GSE214617)..." required style="background: transparent; border: none; color: var(--text-primary); font-size: 0.85rem; outline: none; flex-grow: 1; padding: 0.5rem 0;" pattern="^GSE\d+$" title="GEO Series accession must start with 'GSE' followed by digits.">
-                <button type="submit" id="geo-submit-btn" class="action-btn" style="padding: 0.35rem 1rem; font-size: 0.8rem; background-color: var(--accent-orange); border: 1px solid var(--accent-orange); color: var(--text-primary); font-weight: bold; border-radius: var(--border-radius-md); cursor: pointer; transition: all 0.2s;">
-                    Audit Accession
-                </button>
-            </form>
-        </div>
-        <div id="geo-status-indicator" style="display: none; font-size: 0.8rem; padding: 0.5rem 0.75rem; margin-bottom: 1rem; border-radius: var(--border-radius-md); text-align: left; line-height: 1.4; font-weight: 500;"></div>
-
         <!-- Search bar wrapper -->
         <div class="search-bar-wrapper">
             <span class="search-icon">🔍</span>
@@ -2274,6 +2262,7 @@ Confidence: ${confidence}`;
             if (initialDs) {
                 updateProvenanceBadges(initialDs);
                 updateAiAssistant(initialDs);
+            }
         }
     });
 
