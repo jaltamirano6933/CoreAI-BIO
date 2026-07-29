@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import gc
 
 # Ensure project root is in sys.path when app.py is executed directly
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -263,9 +264,11 @@ def api_morphology_analyze():
 
     try:
         res = morphology_service.analyze_image_bytes(image_bytes, filename=filename, sample_type=sample_type)
-        response = jsonify(res)
+        del image_bytes
+        response = make_response(jsonify(res), 200)
         response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-        return response, 200
+        gc.collect()
+        return response
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 400
 
