@@ -3,6 +3,7 @@ import sys
 import uuid
 import time
 import hashlib
+import gc
 from pathlib import Path
 import cv2
 import numpy as np
@@ -10,6 +11,18 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from PIL import Image
+
+def get_process_memory_mb():
+    try:
+        import psutil
+        process = psutil.Process(os.getpid())
+        return round(process.memory_info().rss / (1024 * 1024), 2)
+    except Exception:
+        try:
+            import resource
+            return round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024, 2)
+        except Exception:
+            return 0.0
 
 class MorphologyService:
     def __init__(self):
@@ -159,14 +172,18 @@ class MorphologyService:
         
         return closed
 
-    def analyze_image_bytes(self, image_bytes, filename="uploaded_image.png", sample_type="generic", um_per_pixel=None, calibration_source=None, microscope_objective=None, image_source=None):
-        sample_type_norm = str(sample_type).lower().strip()
+    def analyze_image_bytes(self, image_bytes, filename="microscopy_image.png", sample_type="generic",
+                            um_per_pixel=None, calibration_source=None, microscope_objective=None,
+                            image_source=None, condition_id=None, **kwargs):
+        mem_before = get_process_memory_mb()
+        print(f"[MorphologyService Memory] Memory usage BEFORE analysis: {mem_before} MB")
+
+        sample_type_norm = str(sample_type).lower().strip() if sample_type else "generic"
         
+        # Profile lookup mapping
         profile_map = {
             "stem_cell": "stem_cell",
-            "stem_cells": "stem_cell",
             "ipsc": "stem_cell",
-            "esc": "stem_cell",
             "ipsc_pluripotency": "stem_cell",
             "generic": "generic",
             "adipose": "adipose",
@@ -255,11 +272,21 @@ class MorphologyService:
         if img_bgr is None:
             raise ValueError("Unsupported or corrupted image file: Failed to decode image format.")
 
+        # Low-Memory Optimization: Rescale high-res images if max dimension > 1500px
         height, width, channels = img_bgr.shape
+        max_dim = max(height, width)
+        if max_dim > 1500:
+            scale = 1500.0 / max_dim
+            new_w, new_h = max(10, int(width * scale)), max(10, int(height * scale))
+            print(f"[MorphologyService Memory] Resizing image from {width}x{height} to {new_w}x{new_h} to fit 512MB RAM limit")
+            img_bgr = cv2.resize(img_bgr, (new_w, new_h), interpolation=cv2.INTER_AREA)
+            height, width, channels = img_bgr.shape
+
         img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
         img_gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
+        del img_bgr
 
-        # 4. Shared Preprocessing & Safe FOV Detection
+        # Shared Preprocessing & Safe FOV Detection
         fov_mask, fov_circle, safe_fov_mask = self._detect_microscope_fov(img_gray)
         fov_area = float(np.sum(fov_mask > 0))
 
@@ -267,12 +294,14 @@ class MorphologyService:
         brightness = float(np.mean(valid_pixels)) if len(valid_pixels) > 0 else float(np.mean(img_gray))
         contrast = float(np.std(valid_pixels)) if len(valid_pixels) > 0 else float(np.std(img_gray))
         
-        laplacian = cv2.Laplacian(img_gray, cv2.CV_64F)
+        laplacian = cv2.Laplacian(img_gray, cv2.CV_32F)
         sharpness = float(laplacian[safe_fov_mask > 0].var()) if np.sum(safe_fov_mask > 0) > 100 else float(laplacian.var())
+        del laplacian
         
         blur_gray = cv2.medianBlur(img_gray, 3)
-        residual = img_gray.astype(np.float64) - blur_gray.astype(np.float64)
+        residual = img_gray.astype(np.float32) - blur_gray.astype(np.float32)
         noise = float(np.std(residual[safe_fov_mask > 0])) if np.sum(safe_fov_mask > 0) > 100 else float(np.std(residual))
+        del blur_gray, residual
         fov_coverage_pct = round(float(fov_area / (width * height)) * 100, 2)
 
         clahe = cv2.createCLAHE(clipLimit=2.5, tileGridSize=(8, 8))
@@ -523,6 +552,11 @@ class MorphologyService:
                 "contours": "/static/results/morphology/cell_contour_overlay.png"
             }
         }
+
+        gc.collect()
+        mem_after = get_process_memory_mb()
+        print(f"[MorphologyService Memory] Memory usage AFTER analysis & GC: {mem_after} MB (delta: {round(mem_after - mem_before, 2)} MB)")
+
         return self.current_analysis
 
     # Shared Contour Extraction & Explicit Rejection Diagnostics Engine
