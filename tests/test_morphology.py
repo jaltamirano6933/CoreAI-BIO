@@ -69,5 +69,41 @@ class TestMorphologyTechnicalVsInterpretationSeparation(unittest.TestCase):
             morphology_service.analyze_image_bytes(corrupted_bytes, filename="corrupt.dat")
         self.assertIn("Unsupported or corrupted image file", str(ctx.exception))
 
+    def test_generated_and_uploaded_image_urls_return_http_200(self):
+        """
+        Test that generated morphology figures and uploaded images return HTTP 200 OK from Flask static route.
+        """
+        img = np.ones((400, 400, 3), dtype=np.uint8) * 20
+        cv2.circle(img, (200, 200), 40, (50, 200, 100), -1)
+        _, encoded = cv2.imencode('.png', img)
+        
+        # Test HTTP POST upload
+        data = {
+            'sample_type': 'stem_cell',
+            'image': (io.BytesIO(encoded.tobytes()), 'test_upload_http.png')
+        }
+        res = self.app.post('/api/morphology/analyze', data=data, content_type='multipart/form-data')
+        self.assertEqual(res.status_code, 200)
+        res_json = res.get_json()
+        
+        self.assertEqual(res_json["status"], "success")
+        self.assertIn("figures", res_json)
+        
+        figures = res_json["figures"]
+        for key, figure_url in figures.items():
+            self.assertTrue(figure_url.startswith('/static/results/morphology/'))
+            self.assertNotIn('\\', figure_url)
+            self.assertNotIn('C:', figure_url)
+            
+            fig_res = self.app.get(figure_url)
+            self.assertEqual(fig_res.status_code, 200, f"Figure URL {figure_url} returned status {fig_res.status_code}")
+
+        uploaded_url = res_json.get("uploaded_image_url")
+        if uploaded_url:
+            self.assertTrue(uploaded_url.startswith('/static/uploads/morphology/'))
+            self.assertNotIn('\\', uploaded_url)
+            up_res = self.app.get(uploaded_url)
+            self.assertEqual(up_res.status_code, 200, f"Uploaded URL {uploaded_url} returned status {up_res.status_code}")
+
 if __name__ == '__main__':
     unittest.main()

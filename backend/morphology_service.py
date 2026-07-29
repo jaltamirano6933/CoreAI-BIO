@@ -3,6 +3,7 @@ import sys
 import uuid
 import time
 import hashlib
+from pathlib import Path
 import cv2
 import numpy as np
 import matplotlib
@@ -12,18 +13,18 @@ from PIL import Image
 
 class MorphologyService:
     def __init__(self):
-        self.base_dir = os.path.dirname(os.path.abspath(__file__))
-        self.root_dir = os.path.dirname(self.base_dir)
-        self.static_dirs = [
-            os.path.join(self.root_dir, "static", "results", "morphology"),
-            os.path.join(self.root_dir, "frontend", "static", "results", "morphology")
-        ]
-        self.upload_dirs = [
-            os.path.join(self.root_dir, "static", "uploads", "morphology"),
-            os.path.join(self.root_dir, "frontend", "static", "uploads", "morphology")
-        ]
-        for d in self.static_dirs + self.upload_dirs:
-            os.makedirs(d, exist_ok=True)
+        # Absolute project root directory resolution
+        self.backend_dir = Path(__file__).resolve().parent
+        self.project_root = self.backend_dir.parent
+        
+        # Single canonical Flask static folder
+        self.flask_static_dir = self.project_root / "frontend" / "static"
+        self.results_dir = self.flask_static_dir / "results" / "morphology"
+        self.uploads_dir = self.flask_static_dir / "uploads" / "morphology"
+        
+        # Ensure canonical directories exist
+        self.results_dir.mkdir(parents=True, exist_ok=True)
+        self.uploads_dir.mkdir(parents=True, exist_ok=True)
             
         self.current_analysis = None
         self._initialize_default_sample()
@@ -48,7 +49,7 @@ class MorphologyService:
             cv2.ellipse(img, (cx, cy), (rx, ry), angle=0, startAngle=0, endAngle=360, color=(60, 210, 110), thickness=2)
             cv2.ellipse(img, (cx, cy), (int(rx*0.4), int(ry*0.4)), angle=0, startAngle=0, endAngle=360, color=(200, 100, 30), thickness=-1)
 
-        sample_path = os.path.join(self.static_dirs[0], "default_microscopy_sample.png")
+        sample_path = str((self.results_dir / "default_microscopy_sample.png").resolve())
         cv2.imwrite(sample_path, img)
         self.analyze_image_bytes(cv2.imencode('.png', img)[1].tobytes(), filename="sample_microscopy.png")
 
@@ -231,13 +232,19 @@ class MorphologyService:
         if not ext or len(ext) > 5:
             ext = ".png"
         saved_filename = f"upload_{uuid.uuid4().hex[:8]}_{int(time.time())}{ext}"
-        abs_file_path = os.path.abspath(os.path.join(self.upload_dirs[0], saved_filename))
+        abs_upload_path = (self.uploads_dir / saved_filename).resolve()
 
-        for u_dir in self.upload_dirs:
-            p = os.path.join(u_dir, saved_filename)
-            with open(p, "wb") as f:
-                f.write(image_bytes)
+        with open(abs_upload_path, "wb") as f:
+            f.write(image_bytes)
 
+        file_exists = abs_upload_path.exists()
+        public_upload_url = f"/static/uploads/morphology/{saved_filename}"
+
+        print(f"[MorphologyService] Absolute saved upload file path: {abs_upload_path}")
+        print(f"[MorphologyService] Upload file exists on disk: {file_exists}")
+        print(f"[MorphologyService] Final public upload URL: {public_upload_url}")
+
+        abs_file_path = str(abs_upload_path)
         img_bgr = cv2.imread(abs_file_path, cv2.IMREAD_COLOR)
         if img_bgr is None:
             try:
@@ -912,10 +919,13 @@ class MorphologyService:
             ax.axis('off')
             plt.tight_layout()
 
-            for s_dir in self.static_dirs:
-                out_path = os.path.join(s_dir, filename)
-                plt.savefig(out_path, dpi=300, bbox_inches='tight', facecolor=fig.get_facecolor())
+            out_path = (self.results_dir / filename).resolve()
+            plt.savefig(str(out_path), dpi=300, bbox_inches='tight', facecolor=fig.get_facecolor())
             plt.close()
+
+            print(f"[MorphologyService] Absolute saved figure path: {out_path}")
+            print(f"[MorphologyService] Figure exists on disk: {out_path.exists()}")
+            print(f"[MorphologyService] Final public figure URL: /static/results/morphology/{filename}")
 
         save_img(img_rgb, "original_image.png")
         save_img(img_gray, "grayscale_image.png", is_gray=True)
