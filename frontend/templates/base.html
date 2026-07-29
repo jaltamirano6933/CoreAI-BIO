@@ -15,14 +15,27 @@
 <body>
     <div class="app-container">
         <!-- Top Navigation Header -->
-        <header class="app-header">
-            <div class="header-logo">
-                <a href="/">
-                    <span class="logo-symbol">🧬</span>
-                    <span class="logo-text">CoreAI <span class="logo-highlight">BIO</span></span>
-                </a>
+        <header class="app-header" id="app-header">
+            <div class="header-top-bar">
+                <div class="header-logo">
+                    <a href="/">
+                        <span class="logo-symbol">🧬</span>
+                        <span class="logo-text">CoreAI <span class="logo-highlight">BIO</span></span>
+                    </a>
+                </div>
+                <div class="header-right-tools">
+                    <div class="header-status">
+                        <span class="status-indicator"></span>
+                        <span class="status-label">System Online</span>
+                    </div>
+                    <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Toggle Navigation Menu" onclick="toggleMobileMenu()">
+                        <span class="hamburger-line"></span>
+                        <span class="hamburger-line"></span>
+                        <span class="hamburger-line"></span>
+                    </button>
+                </div>
             </div>
-            <nav class="header-nav">
+            <nav class="header-nav" id="header-nav">
                 <a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}">Home</a>
                 <a href="/sindex" class="nav-link {% if request.path == '/sindex' %}active{% endif %}">S-Index</a>
                 <a href="/culture" class="nav-link {% if request.path == '/culture' %}active{% endif %}">Culture</a>
@@ -31,10 +44,6 @@
                 <a href="/laboratory" class="nav-link {% if request.path == '/laboratory' %}active{% endif %}">AI Lab</a>
                 <a href="/assistant" class="nav-link {% if request.path == '/assistant' %}active{% endif %}">Assistant</a>
             </nav>
-            <div class="header-status">
-                <span class="status-indicator"></span>
-                <span class="status-label">System Online</span>
-            </div>
         </header>
 
         <!-- Main Content Area -->
@@ -57,5 +66,16 @@
             </div>
         </footer>
     </div>
+
+    <script>
+        function toggleMobileMenu() {
+            const nav = document.getElementById('header-nav');
+            const btn = document.getElementById('mobile-menu-btn');
+            if (nav && btn) {
+                nav.classList.toggle('nav-open');
+                btn.classList.toggle('is-active');
+            }
+        }
+    </script>
 </body>
 </html>
